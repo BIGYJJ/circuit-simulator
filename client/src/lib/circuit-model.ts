@@ -6,6 +6,7 @@
 export const CIRCUIT_DOCUMENT_VERSION = 1 as const;
 
 export type ComponentKind = "voltageSource" | "resistor" | "capacitor" | "switch" | "ground";
+export type RCSwitchMode = "charge" | "hold" | "discharge";
 
 export type CircuitPortName = "top" | "bottom";
 
@@ -18,6 +19,7 @@ export interface CircuitComponent {
   value?: number;
   initialValue?: number;
   closed?: boolean;
+  switchMode?: RCSwitchMode;
 }
 
 export interface WireEndpoint {
@@ -76,7 +78,7 @@ export function createRCChargeDocument(): CircuitDocument {
     updatedAt: new Date().toISOString(),
     components: [
       { id: "V1", kind: "voltageSource", label: "V1", x: 230, y: 328, value: 5 },
-      { id: "S1", kind: "switch", label: "S1", x: 400, y: 190, closed: true },
+      { id: "S1", kind: "switch", label: "S1", x: 400, y: 190, closed: true, switchMode: "charge" },
       { id: "R1", kind: "resistor", label: "R1", x: 560, y: 280, value: 10000 },
       { id: "C1", kind: "capacitor", label: "C1", x: 560, y: 435, value: 100e-6, initialValue: 0 },
       { id: "GND", kind: "ground", label: "GND", x: 560, y: 565 },
