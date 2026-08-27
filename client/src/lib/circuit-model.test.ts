@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRCChargeDocument, createVoltageDividerDocument, findOpenEndpoints, parseStoredDocument, validateDocument } from "./circuit-model";
+import { createLEDDebugDocument, createRCChargeDocument, createVoltageDividerDocument, findOpenEndpoints, parseStoredDocument, validateDocument } from "./circuit-model";
 
 describe("版本化电路文档", () => {
   it("创建可用于分压实验的有效初始文档", () => {
@@ -32,6 +32,13 @@ describe("版本化电路文档", () => {
   it("创建包含电容和开关的版本化 RC 充电实验", () => {
     const document = createRCChargeDocument();
     expect(document.components.map((component) => component.kind)).toEqual(["voltageSource", "switch", "resistor", "capacitor", "ground"]);
+    expect(validateDocument(document)).toEqual([]);
+  });
+
+  it("创建包含 LED 和探针的可导出工作点实验", () => {
+    const document = createLEDDebugDocument();
+    expect(document.components.some((component) => component.kind === "led")).toBe(true);
+    expect(document.components.some((component) => component.kind === "probe")).toBe(true);
     expect(validateDocument(document)).toEqual([]);
   });
 });

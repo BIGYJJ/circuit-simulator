@@ -5,6 +5,7 @@
 
 import type { CircuitDocument } from "./circuit-model";
 import type { RCChargeSolution } from "./rc-charge-solver";
+import type { LEDSolution } from "./led-solver";
 
 export function serializeCircuit(document: CircuitDocument) {
   return JSON.stringify(document, null, 2);
@@ -19,4 +20,10 @@ export function serializeRCTrace(solution: RCChargeSolution) {
     sample.capacitorEnergy.toFixed(12),
   ].join(","));
   return [header.join(","), ...rows].join("\n");
+}
+
+export function serializeLEDSnapshot(solution: LEDSolution) {
+  const header = ["led_voltage_v", "branch_current_a", "resistor_power_w", "led_power_w", "brightness_percent", "safe"];
+  const row = [solution.ledVoltage, solution.current, solution.resistorPower, solution.ledPower, solution.brightness, solution.isSafe].join(",");
+  return [header.join(","), row].join("\n");
 }
