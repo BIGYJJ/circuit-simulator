@@ -1,26 +1,56 @@
 /**
- * 精密实验档案：深色网格是搭建层，白色符号是电路事实，黄绿色只表示选择、运行与活动路径。
- * 画布只绘制模型和仿真快照；属性输入与求解逻辑保留在独立模块中。
+ * 精密实验档案：SVG 只呈现可编辑的电路事实及临时指针预览，完成操作才向上层提交版本化文档变更。
+ * 深色网格承载搭建层；白色连线表示实际连接；萤光石灰仅表示吸附、选中和正在构建的连接。
  */
 
-import type { CircuitComponent, CircuitDocument, CircuitPortName } from "@/lib/circuit-model";
+import type { ComponentKind, CircuitComponent, CircuitDocument, CircuitPortName, WireEndpoint } from "@/lib/circuit-model";
 import type { SimulationResult } from "@/lib/circuit-solver";
 import { cn } from "@/lib/utils";
+import { useRef, useState } from "react";
 
 interface CircuitCanvasProps {
   document: CircuitDocument;
   selectedId: string | null;
+  selectedWireId: string | null;
   simulation: SimulationResult | null;
   zoom: number;
   onSelect: (componentId: string) => void;
+  onSelectWire: (wireId: string | null) => void;
+  onMoveComponent: (componentId: string, x: number, y: number) => void;
+  onDropComponent: (kind: ComponentKind, x: number, y: number) => void;
+  onCreateWire: (from: WireEndpoint, to: WireEndpoint) => void;
+  onDeleteWire: (wireId: string) => void;
 }
 
 type Point = { x: number; y: number };
+type ActiveDrag = { componentId: string; point: Point };
+type ActiveWire = { from: WireEndpoint; point: Point; target: WireEndpoint | null };
+
+const CANVAS_WIDTH = 1000;
+const CANVAS_HEIGHT = 650;
+const GRID_SIZE = 25;
+const SNAP_RADIUS = 26;
+
+function snap(value: number) {
+  return Math.round(value / GRID_SIZE) * GRID_SIZE;
+}
+
+function snapPoint(point: Point): Point {
+  return { x: Math.max(50, Math.min(CANVAS_WIDTH - 50, snap(point.x))), y: Math.max(50, Math.min(CANVAS_HEIGHT - 50, snap(point.y))) };
+}
+
+function sameEndpoint(left: WireEndpoint, right: WireEndpoint) {
+  return left.componentId === right.componentId && left.port === right.port;
+}
 
 function portPoint(component: CircuitComponent, port: CircuitPortName): Point {
   if (component.kind === "ground") return { x: component.x, y: component.y - 34 };
   const offset = component.kind === "voltageSource" ? 66 : 60;
   return { x: component.x, y: component.y + (port === "top" ? -offset : offset) };
+}
+
+function portsFor(component: CircuitComponent): CircuitPortName[] {
+  return component.kind === "ground" ? ["top"] : ["top", "bottom"];
 }
 
 function formatResistance(value?: number) {
@@ -30,7 +60,12 @@ function formatResistance(value?: number) {
 
 function componentLabel(component: CircuitComponent) {
   const title = component.kind === "voltageSource" ? `${component.value ?? 0}V` : formatResistance(component.value);
-  return `${component.label}  ${title}`;
+  return `${component.label} ${title}`;
+}
+
+function drawWire(from: Point, to: Point) {
+  const middle = Math.round((from.x + to.x) / 2);
+  return `M ${from.x} ${from.y} H ${middle} V ${to.y} H ${to.x}`;
 }
 
 function ResistorSymbol({ component, active }: { component: CircuitComponent; active: boolean }) {
@@ -89,23 +124,129 @@ function GroundSymbol({ component, active }: { component: CircuitComponent; acti
   );
 }
 
-export default function CircuitCanvas({ document, selectedId, simulation, zoom, onSelect }: CircuitCanvasProps) {
-  const componentById = new Map(document.components.map((component) => [component.id, component]));
+export default function CircuitCanvas({
+  document,
+  selectedId,
+  selectedWireId,
+  simulation,
+  zoom,
+  onSelect,
+  onSelectWire,
+  onMoveComponent,
+  onDropComponent,
+  onCreateWire,
+  onDeleteWire,
+}: CircuitCanvasProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [drag, setDrag] = useState<ActiveDrag | null>(null);
+  const [wiring, setWiring] = useState<ActiveWire | null>(null);
+  const [isDropTarget, setIsDropTarget] = useState(false);
+
+  const components = document.components.map((component) =>
+    drag?.componentId === component.id ? { ...component, ...drag.point } : component,
+  );
+  const componentById = new Map(components.map((component) => [component.id, component]));
   const isLive = simulation?.success === true;
   const outputResistorId = isLive ? simulation.solution.rLow.id : null;
   const outputResistor = outputResistorId ? componentById.get(outputResistorId) : undefined;
   const outputNode = outputResistor ? portPoint(outputResistor, "top") : null;
 
+  const eventPoint = (event: { clientX: number; clientY: number }): Point => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return snapPoint({ x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH, y: ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT });
+  };
+
+  const findTargetPort = (point: Point, ignored: WireEndpoint): WireEndpoint | null => {
+    let nearest: { endpoint: WireEndpoint; distance: number } | null = null;
+    for (const component of components) {
+      for (const port of portsFor(component)) {
+        const candidate = { componentId: component.id, port } as WireEndpoint;
+        if (sameEndpoint(candidate, ignored)) continue;
+        const targetPoint = portPoint(component, port);
+        const distance = Math.hypot(targetPoint.x - point.x, targetPoint.y - point.y);
+        if (distance <= SNAP_RADIUS && (!nearest || distance < nearest.distance)) nearest = { endpoint: candidate, distance };
+      }
+    }
+    return nearest?.endpoint ?? null;
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (drag) {
+      setDrag({ componentId: drag.componentId, point: eventPoint(event) });
+      return;
+    }
+    if (wiring) {
+      const point = eventPoint(event);
+      const target = findTargetPort(point, wiring.from);
+      const targetComponent = target ? componentById.get(target.componentId) : null;
+      setWiring({ from: wiring.from, target, point: target && targetComponent ? portPoint(targetComponent, target.port) : point });
+    }
+  };
+
+  const finishPointer = () => {
+    if (drag) {
+      const original = document.components.find((component) => component.id === drag.componentId);
+      if (original && (original.x !== drag.point.x || original.y !== drag.point.y)) onMoveComponent(drag.componentId, drag.point.x, drag.point.y);
+      setDrag(null);
+    }
+    if (wiring) {
+      if (wiring.target) onCreateWire(wiring.from, wiring.target);
+      setWiring(null);
+    }
+  };
+
+  const beginMove = (event: React.PointerEvent<SVGGElement>, component: CircuitComponent) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    onSelect(component.id);
+    onSelectWire(null);
+    svgRef.current?.setPointerCapture(event.pointerId);
+    setDrag({ componentId: component.id, point: { x: component.x, y: component.y } });
+  };
+
+  const beginWire = (event: React.PointerEvent<SVGCircleElement>, component: CircuitComponent, port: CircuitPortName) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    const from = { componentId: component.id, port } as WireEndpoint;
+    onSelect(component.id);
+    onSelectWire(null);
+    svgRef.current?.setPointerCapture(event.pointerId);
+    setWiring({ from, point: portPoint(component, port), target: null });
+  };
+
+  const handleDrop = (event: React.DragEvent<SVGSVGElement>) => {
+    event.preventDefault();
+    setIsDropTarget(false);
+    const kind = event.dataTransfer.getData("application/x-circuit-kind") as ComponentKind;
+    if (["resistor", "voltageSource", "ground"].includes(kind)) {
+      const point = eventPoint(event);
+      onDropComponent(kind, point.x, point.y);
+    }
+  };
+
   return (
-    <div className="canvas-stage" aria-label="分压电路画布">
+    <div className={cn("canvas-stage", isDropTarget && "is-drop-target", wiring && "is-wiring")} aria-label="可编辑分压电路画布">
       <div className="canvas-ruler canvas-ruler-x"><span>0</span><span>200</span><span>400</span><span>600</span><span>800</span></div>
       <div className="canvas-ruler canvas-ruler-y"><span>0</span><span>160</span><span>320</span><span>480</span></div>
+      {isDropTarget && <div className="canvas-drop-hint">松开以放置元件</div>}
+      {wiring && <div className="canvas-wire-hint">{wiring.target ? "松开以连接端口" : "拖到另一端口以连接"}</div>}
       <div className="canvas-scroll-area">
         <svg
+          ref={svgRef}
           className="circuit-svg"
-          viewBox="0 0 1000 650"
+          viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
           preserveAspectRatio="xMidYMid meet"
           style={{ transform: `scale(${zoom / 100})` }}
+          onPointerMove={handlePointerMove}
+          onPointerUp={finishPointer}
+          onPointerCancel={() => { setDrag(null); setWiring(null); }}
+          onPointerDown={() => onSelectWire(null)}
+          onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; setIsDropTarget(true); }}
+          onDragLeave={() => setIsDropTarget(false)}
+          onDrop={handleDrop}
+          onKeyDown={(event) => { if ((event.key === "Delete" || event.key === "Backspace") && selectedWireId) onDeleteWire(selectedWireId); }}
+          tabIndex={0}
         >
           <defs>
             <pattern id="minorGrid" width="25" height="25" patternUnits="userSpaceOnUse">
@@ -116,7 +257,7 @@ export default function CircuitCanvas({ document, selectedId, simulation, zoom, 
               <path d="M 125 0 L 0 0 0 125" className="svg-grid-major" fill="none" />
             </pattern>
           </defs>
-          <rect width="1000" height="650" fill="url(#majorGrid)" />
+          <rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="url(#majorGrid)" />
           <g className={isLive ? "wire-group wire-live" : "wire-group"}>
             {document.wires.map((wire) => {
               const fromComponent = componentById.get(wire.from.componentId);
@@ -124,10 +265,17 @@ export default function CircuitCanvas({ document, selectedId, simulation, zoom, 
               if (!fromComponent || !toComponent) return null;
               const from = portPoint(fromComponent, wire.from.port);
               const to = portPoint(toComponent, wire.to.port);
-              const middle = Math.round((from.x + to.x) / 2);
-              return <path key={wire.id} d={`M ${from.x} ${from.y} H ${middle} V ${to.y} H ${to.x}`} className="svg-wire" />;
+              const selected = selectedWireId === wire.id;
+              return <path key={wire.id} d={drawWire(from, to)} className={cn("svg-wire", selected && "svg-wire-selected")} onPointerDown={(event) => { event.stopPropagation(); onSelectWire(wire.id); }} />;
             })}
           </g>
+
+          {wiring && (() => {
+            const startComponent = componentById.get(wiring.from.componentId);
+            if (!startComponent) return null;
+            const start = portPoint(startComponent, wiring.from.port);
+            return <path d={drawWire(start, wiring.point)} className="svg-wire svg-wire-preview" />;
+          })()}
 
           {outputNode && (
             <g className="output-branch">
@@ -137,33 +285,31 @@ export default function CircuitCanvas({ document, selectedId, simulation, zoom, 
             </g>
           )}
 
-          {document.components.map((component) => {
+          {components.map((component) => {
             const active = component.id === selectedId;
-            const handleKeyDown = (event: React.KeyboardEvent<SVGGElement>) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onSelect(component.id);
-              }
-            };
             return (
               <g
                 key={component.id}
-                className="circuit-component"
+                className={cn("circuit-component", drag?.componentId === component.id && "is-dragging")}
                 role="button"
                 tabIndex={0}
-                aria-label={`选择 ${componentLabel(component)}`}
-                onClick={() => onSelect(component.id)}
-                onKeyDown={handleKeyDown}
+                aria-label={`选择或移动 ${componentLabel(component)}`}
+                onPointerDown={(event) => beginMove(event, component)}
+                onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(component.id); } }}
               >
                 {component.kind === "resistor" && <ResistorSymbol component={component} active={active} />}
                 {component.kind === "voltageSource" && <VoltageSourceSymbol component={component} active={active} />}
                 {component.kind === "ground" && <GroundSymbol component={component} active={active} />}
-                {component.kind !== "ground" && (
-                  <>
-                    <circle className={cn("svg-terminal", active && "svg-terminal-active")} cx={portPoint(component, "top").x} cy={portPoint(component, "top").y} r="5" />
-                    <circle className={cn("svg-terminal", active && "svg-terminal-active")} cx={portPoint(component, "bottom").x} cy={portPoint(component, "bottom").y} r="5" />
-                  </>
-                )}
+                {portsFor(component).map((port) => {
+                  const point = portPoint(component, port);
+                  const isTarget = wiring?.target?.componentId === component.id && wiring?.target?.port === port;
+                  return (
+                    <g key={port}>
+                      <circle className={cn("svg-terminal", active && "svg-terminal-active", isTarget && "svg-terminal-target")} cx={point.x} cy={point.y} r="5" />
+                      <circle className="svg-port-hit" cx={point.x} cy={point.y} r="13" onPointerDown={(event) => beginWire(event, component, port)} />
+                    </g>
+                  );
+                })}
               </g>
             );
           })}

@@ -237,6 +237,18 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible { outli
 .status-spacer { flex: 1; }
 .status-model { color: #646d64; }
 
+.canvas-stage.is-drop-target { box-shadow: inset 0 0 0 2px rgba(199,244,61,.48); }
+.canvas-stage.is-wiring { cursor: crosshair; }
+.circuit-svg { touch-action: none; user-select: none; }
+.canvas-drop-hint, .canvas-wire-hint { position: absolute; z-index: 3; left: 50%; top: 21px; transform: translateX(-50%); padding: 7px 11px; border: 1px solid rgba(199,244,61,.4); border-radius: 4px; background: rgba(17,22,12,.94); color: var(--lime); font: 11px "IBM Plex Mono", monospace; pointer-events: none; box-shadow: 0 8px 20px rgba(0,0,0,.26); }
+.svg-wire:hover { stroke: var(--lime); stroke-width: 3.3; cursor: pointer; }
+.svg-wire-selected { stroke: var(--lime) !important; stroke-width: 4.2 !important; filter: drop-shadow(0 0 4px rgba(199,244,61,.35)); }
+.svg-wire-preview { stroke: var(--lime); stroke-width: 2.6; stroke-dasharray: 8 7; opacity: .9; pointer-events: none; animation: wire-march .55s linear infinite; }
+.svg-terminal-target { fill: var(--lime); stroke: #f8ffdb; stroke-width: 3; filter: drop-shadow(0 0 5px rgba(199,244,61,.75)); }
+.svg-port-hit { fill: transparent; stroke: transparent; cursor: crosshair; }
+.circuit-component { cursor: grab; }
+.circuit-component.is-dragging { cursor: grabbing; opacity: .78; }
+@keyframes wire-march { to { stroke-dashoffset: -15; } }
 @keyframes pulse-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 @media (max-width: 1160px) { .workbench { grid-template-columns: 58px 245px minmax(440px, 1fr) 300px; } .wordmark { width: 154px; padding-left: 17px; font-size: 22px; } .project-path { padding: 0 16px; font-size: 13px; } .save-status { display: none; } .top-actions { padding-left: 10px; gap: 5px; } .run-button { min-width: 136px; } .inspector-content { padding-inline: 18px; } .measurement-content { grid-template-columns: 1.2fr 1fr 1fr; } .equation-chip { display: none; } }
