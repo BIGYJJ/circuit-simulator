@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createVoltageDividerDocument, findOpenEndpoints, parseStoredDocument, validateDocument } from "./circuit-model";
+import { createRCChargeDocument, createVoltageDividerDocument, findOpenEndpoints, parseStoredDocument, validateDocument } from "./circuit-model";
 
 describe("版本化电路文档", () => {
   it("创建可用于分压实验的有效初始文档", () => {
@@ -27,5 +27,11 @@ describe("版本化电路文档", () => {
     expect(findOpenEndpoints(document)).toEqual([]);
     document.wires = document.wires.filter((wire) => wire.id !== "w4");
     expect(findOpenEndpoints(document)).toEqual([{ componentId: "V1", port: "bottom" }]);
+  });
+
+  it("创建包含电容和开关的版本化 RC 充电实验", () => {
+    const document = createRCChargeDocument();
+    expect(document.components.map((component) => component.kind)).toEqual(["voltageSource", "switch", "resistor", "capacitor", "ground"]);
+    expect(validateDocument(document)).toEqual([]);
   });
 });
