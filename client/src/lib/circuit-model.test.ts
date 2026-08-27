@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createVoltageDividerDocument, parseStoredDocument, validateDocument } from "./circuit-model";
+import { createVoltageDividerDocument, findOpenEndpoints, parseStoredDocument, validateDocument } from "./circuit-model";
 
 describe("版本化电路文档", () => {
   it("创建可用于分压实验的有效初始文档", () => {
@@ -20,5 +20,12 @@ describe("版本化电路文档", () => {
     const valid = JSON.stringify(createVoltageDividerDocument());
     expect(parseStoredDocument(valid)?.name).toBe("9V 分压器实验");
     expect(parseStoredDocument("{not json}")).toBeNull();
+  });
+
+  it("将未接线端口作为可编辑但尚未完整的结构状态返回", () => {
+    const document = createVoltageDividerDocument();
+    expect(findOpenEndpoints(document)).toEqual([]);
+    document.wires = document.wires.filter((wire) => wire.id !== "w4");
+    expect(findOpenEndpoints(document)).toEqual([{ componentId: "V1", port: "bottom" }]);
   });
 });

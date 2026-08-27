@@ -82,6 +82,19 @@ export function getComponentPorts(component: CircuitComponent): CircuitPortName[
   return component.kind === "ground" ? ["top"] : ["top", "bottom"];
 }
 
+export function findOpenEndpoints(document: CircuitDocument): WireEndpoint[] {
+  const connected = new Set<string>();
+  for (const wire of document.wires) {
+    connected.add(`${wire.from.componentId}:${wire.from.port}`);
+    connected.add(`${wire.to.componentId}:${wire.to.port}`);
+  }
+  return document.components.flatMap((component) =>
+    getComponentPorts(component)
+      .filter((port) => !connected.has(`${component.id}:${port}`))
+      .map((port) => ({ componentId: component.id, port })),
+  );
+}
+
 export function cloneDocument(document: CircuitDocument): CircuitDocument {
   return JSON.parse(JSON.stringify(document)) as CircuitDocument;
 }

@@ -13,6 +13,7 @@ import {
   cloneDocument,
   componentKinds,
   createVoltageDividerDocument,
+  findOpenEndpoints,
   parseStoredDocument,
   storageKey,
   updateDocument,
@@ -97,6 +98,7 @@ export default function Home() {
 
   const selectedComponent = useMemo(() => document.components.find((component) => component.id === selectedId) ?? document.components[0], [document.components, selectedId]);
   const selectedWire = useMemo(() => document.wires.find((wire) => wire.id === selectedWireId) ?? null, [document.wires, selectedWireId]);
+  const openEndpoints = useMemo(() => findOpenEndpoints(document), [document]);
   const hasSolution = simulation?.success === true;
   const selectedValueLabel = selectedComponent?.kind === "resistor" ? "阻值" : "直流电压";
 
@@ -278,7 +280,7 @@ export default function Home() {
         </aside>
 
         <section className="center-stage">
-          <div className="canvas-toolbar"><div><span className="toolbar-eyebrow">活动实验</span><strong>线性 DC · 分压器</strong></div><div className="canvas-toolbar-actions"><span><Zap size={14} />{hasSolution ? "工作点已验证" : "修改后待运行"}</span><button onClick={resetExperiment}><RotateCcw size={14} />恢复实验</button></div></div>
+          <div className="canvas-toolbar"><div><span className="toolbar-eyebrow">活动实验</span><strong>线性 DC · 分压器</strong></div><div className="canvas-toolbar-actions"><span className={cn(openEndpoints.length && "is-incomplete")}><Zap size={14} />{openEndpoints.length ? `${openEndpoints.length} 个端口未连接` : hasSolution ? "工作点已验证" : "结构完整 · 待运行"}</span><button onClick={resetExperiment}><RotateCcw size={14} />恢复实验</button></div></div>
           <CircuitCanvas document={document} selectedId={selectedId} selectedWireId={selectedWireId} simulation={simulation} zoom={zoom} onSelect={selectComponent} onSelectWire={setSelectedWireId} onMoveComponent={moveComponent} onDropComponent={addComponent} onCreateWire={createWire} onDeleteWire={deleteWire} />
           <section className="measurement-drawer" aria-label="直流测量结果">
             <div className="drawer-header"><div><Activity size={16} /><span>测量台</span></div><span className="drawer-mode">DC 工作点</span><span className="drawer-spacer" /><button onClick={() => toast.message("RC 瞬态与示波器将在下一阶段启用。 ")}>波形模式 <ChevronDown size={14} /></button></div>
@@ -296,13 +298,13 @@ export default function Home() {
               <label className="field-label">容差</label><button className="select-field">5 % <ChevronDown size={18} /></button><label className="field-label">额定功耗</label><button className="select-field">0.25 W <ChevronDown size={18} /></button><button className="apply-button" onClick={applyValue}>应用参数</button>
             </> : <div className="ground-inspector"><span className="ground-large">⏚</span><strong>参考地</strong><p>该节点定义为 0 V，是所有测量读数的共同基准。</p></div>}
 
-            <div className="evidence-card"><div className="evidence-header"><SlidersHorizontal size={16} /><span>求解证据</span></div>{hasSolution ? <><div className="evidence-line"><span>状态</span><b className="ok-text">线性 DC 收敛</b></div><div className="evidence-line"><span>Vout</span><b>{simulation.solution.vout.toFixed(3)} V</b></div><div className="evidence-line"><span>中点关系</span><b>{simulation.solution.rHigh.label} → {simulation.solution.rLow.label}</b></div></> : simulation && !simulation.success ? <div className="diagnostic"><Info size={17} /><span>{simulation.diagnostics[0]}</span></div> : <p>完成连接后点击“运行仿真”，此处将显示计算状态与可核对读数。</p>}</div>
+            <div className="evidence-card"><div className="evidence-header"><SlidersHorizontal size={16} /><span>求解证据</span></div>{hasSolution ? <><div className="evidence-line"><span>状态</span><b className="ok-text">线性 DC 收敛</b></div><div className="evidence-line"><span>Vout</span><b>{simulation.solution.vout.toFixed(3)} V</b></div><div className="evidence-line"><span>中点关系</span><b>{simulation.solution.rHigh.label} → {simulation.solution.rLow.label}</b></div></> : simulation && !simulation.success ? <div className="diagnostic"><Info size={17} /><span>{simulation.diagnostics[0]}</span></div> : openEndpoints.length ? <div className="diagnostic"><Info size={17} /><span>文档已保存，但还有 {openEndpoints.length} 个端口未连接。完成连线后再运行 DC 分析。</span></div> : <p>结构已完整。点击“运行仿真”，此处将显示计算状态与可核对读数。</p>}</div>
             <div className="learning-card"><span>连接操作提示</span><strong>拖动元件只改变布局；从端口到端口的导线才会改变电气拓扑。</strong><button onClick={() => toast.message("串联分压器需要：V1 上端→R1 上端，R1 下端→R2 上端，R2 下端→GND，V1 下端→GND。 ")}>显示目标连接 <span>→</span></button></div>
           </div>
         </aside>
       </section>
 
-      <footer className="lab-statusbar"><span className={cn("footer-status", runState === "error" && "is-error")}><i />{runState === "error" ? "电路需要检查" : hasSolution ? "电路有效" : "可编辑"}</span><span>{document.components.length} 个元件</span><i className="footer-separator" /><span>{document.wires.length} 条导线</span><i className="footer-separator" /><span>{hasSolution ? "DC 工作点就绪" : "拖拽或连线后运行"}</span><span className="status-spacer" /><span className="status-model">教学模型 · 请以实物验证为准</span></footer>
+      <footer className="lab-statusbar"><span className={cn("footer-status", runState === "error" && "is-error", openEndpoints.length && "is-warning")}><i />{runState === "error" ? "电路需要检查" : openEndpoints.length ? "连接未完成" : hasSolution ? "电路有效" : "结构完整"}</span><span>{document.components.length} 个元件</span><i className="footer-separator" /><span>{document.wires.length} 条导线</span><i className="footer-separator" /><span>{openEndpoints.length ? `${openEndpoints.length} 个端口待接线` : hasSolution ? "DC 工作点就绪" : "准备运行"}</span><span className="status-spacer" /><span className="status-model">教学模型 · 请以实物验证为准</span></footer>
     </main>
   );
 }
