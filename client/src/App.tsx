@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import DividerLab from "@/pages/DividerLab";
 import LEDLab from "@/pages/LEDLab";
+import EngineeringStudio from "@/pages/EngineeringStudio";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -11,7 +12,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 
 function Router() {
-  return <Switch><Route path="/" component={Home} /><Route path="/led" component={LEDLab} /><Route path="/divider" component={DividerLab} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
+  return <Switch><Route path="/" component={Home} /><Route path="/engineering" component={EngineeringStudio} /><Route path="/led" component={LEDLab} /><Route path="/divider" component={DividerLab} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
 }
 
 export default function App() {
