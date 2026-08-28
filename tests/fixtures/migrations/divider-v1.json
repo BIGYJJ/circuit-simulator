@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "title": "旧分压器",
+  "learning-progress": { "completed": true },
+  "components": [
+    { "id": "V1", "kind": "voltageSource", "dcV": 9, "x": 120, "y": 220 },
+    { "id": "R1", "kind": "resistor", "value": 1000, "x": 490, "y": 150 },
+    { "id": "R2", "kind": "resistor", "value": 2000, "x": 490, "y": 310 },
+    { "id": "GND", "kind": "ground", "x": 120, "y": 380 }
+  ],
+  "runs": [{ "status": "success" }]
+}

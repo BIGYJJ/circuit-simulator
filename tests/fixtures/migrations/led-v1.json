@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "title": "旧 LED",
+  "components": [
+    { "id": "V1", "kind": "voltageSource", "dcV": 5, "x": 120, "y": 220 },
+    { "id": "R1", "kind": "resistor", "value": 680, "x": 320, "y": 160 },
+    { "id": "D1", "kind": "diode", "x": 520, "y": 260 },
+    { "id": "GND", "kind": "ground", "x": 520, "y": 380 }
+  ]
+}

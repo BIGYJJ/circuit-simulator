@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "title": "旧 RC",
+  "components": [
+    { "id": "V1", "kind": "voltageSource", "dcV": 5, "x": 120, "y": 220 },
+    { "id": "R1", "kind": "resistor", "value": 10000, "x": 320, "y": 160 },
+    { "id": "C1", "kind": "capacitor", "value": 0.0001, "x": 520, "y": 260 },
+    { "id": "GND", "kind": "ground", "x": 520, "y": 380 }
+  ]
+}

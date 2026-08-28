@@ -70,7 +70,7 @@
 - [x] Task 2：移除凭据、遥测、代理、服务端与模板脚手架。
 - [x] Task 3：定义 CircuitProjectV2、canonical hashing 与严格 Zod 信任边界。
 - [x] Task 4：实现统一 SPICE 来源 allowlist 与续行安全解析。
-- [ ] Task 5：实现可信 v2 模板、内置模型账本与显式 v1 迁移。
+- [x] Task 5：实现可信 v2 模板、内置模型账本与显式 v1 迁移。
 - [ ] Task 6：实现修订安全命令、原生 IndexedDB 与首个项目工作流。
 - [ ] Task 7：实现统一原理图图构建与 ERC 诊断。
 - [ ] Task 8：实现确定性网表、角点、模型与向量计划编译。

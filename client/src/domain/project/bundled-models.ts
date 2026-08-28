@@ -1,0 +1,13 @@
+/** FLUXLAB bundled-model ledger: published sources are append-only; templates choose IDs through a separate current-key registry. */
+import { parseAndValidateSpiceSource } from "../../simulation/spice-source-parser";
+import type { Diagnostic, DomainResult, ModelDefinition } from "./project-v2";
+
+export type BundledModelManifestEntry = ModelDefinition & { sourceModuleVersion: string };
+export const BUNDLED_MODEL_MANIFEST: readonly BundledModelManifestEntry[] = [
+  { id: "model:fluxled:v1", displayName: "FLUXLAB LED diode v1", source: ".model FLUXLED D(IS=1e-18 N=2)", sha256: "d64ce11e72571ea3e7fec4a597dd5a47abd4294e408b5a67c4ab935e529b6549", origin: "bundled", licenseNote: "SPICE diode teaching parameters authored for FLUXLAB.", sourceModuleVersion: "1", kind: "spice-model", modelName: "FLUXLED", deviceFamily: "diode" },
+  { id: "model:fluxsw:v1", displayName: "FLUXLAB voltage switch v1", source: ".model FLUXSW SW(VT=2 VH=0.1 RON=1 ROFF=1meg)", sha256: "3c9b5b051c13cd463b3a59036ff7678cb582d517907b90181490f17683085011", origin: "bundled", licenseNote: "SPICE switch teaching parameters authored for FLUXLAB.", sourceModuleVersion: "1", kind: "spice-model", modelName: "FLUXSW", deviceFamily: "switch" },
+];
+export const CURRENT_BUNDLED_MODEL_KEYS = { ledDiode: "model:fluxled:v1", migrationSwitch: "model:fluxsw:v1" } as const;
+export function projectModelsFromManifest(): ModelDefinition[] { return BUNDLED_MODEL_MANIFEST.map(({ sourceModuleVersion: _sourceModuleVersion, ...model }) => ({ ...model })); }
+export function bundledModel(id: string): ModelDefinition { const found = projectModelsFromManifest().find((entry) => entry.id === id); if (!found) throw new Error(`Unknown bundled model key: ${id}`); return found; }
+export async function validateBundledModelManifest(): Promise<DomainResult<readonly BundledModelManifestEntry[]>> { const diagnostics: Diagnostic[] = []; for (const entry of BUNDLED_MODEL_MANIFEST) { const parsed = await parseAndValidateSpiceSource(entry.source, "bundled-model", "opaque-model"); if (!parsed.ok) diagnostics.push(...parsed.diagnostics); else if (entry.sha256 !== parsed.value.sha256 || entry.kind !== "spice-model" || parsed.value.models.length !== 1 || parsed.value.models[0].name.toUpperCase() !== entry.modelName.toUpperCase() || parsed.value.models[0].family !== entry.deviceFamily) diagnostics.push({ severity: "error", code: "BUNDLED_MODEL_MANIFEST_MISMATCH", message: "Bundled model ledger metadata does not match its parsed source.", location: { modelId: entry.id }, blocksRun: true }); } return diagnostics.length ? { ok: false, diagnostics } : { ok: true, value: BUNDLED_MODEL_MANIFEST, diagnostics: [] }; }
