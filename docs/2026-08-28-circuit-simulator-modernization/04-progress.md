@@ -2,11 +2,11 @@
 
 ## Current Status
 
-- Phase: Task 2 complete; Task 3–7 queued before deferred Task 1 qualification.
+- Phase: Task 3 complete; Task 4–7 queued before deferred Task 1 qualification.
 - Completed: 仓库/产品基线审计、需求 R1–R10、用户批准的方案 A、详细架构、canonical Task 1–23 实施计划、Task 2 静态化安全清理，以及本地 Git 工作树、凭据撤销/轮换确认和固定 gitleaks `v8.30.1` 前置核验。
-- In progress: 按用户明确优先级先执行不依赖数值运行时的 Task 3–7。
+- In progress: 按用户明确优先级先执行不依赖数值运行时的 Task 4–7。
 - Deferred gate: Task 1 仍要求单一、固定、可审计的 ngspice/WASM 在 Chromium、Firefox、WebKit 中通过全部数值/清理/资源资格化；现有候选没有通过预检，未以公式、云端或第二求解器替代。
-- Next: 依序实施 Task 3、4、5、6、7；然后在获得可资格化的固定 ngspice/WASM 发行物或经批准的构建路线后恢复 Task 1。Task 8–23 继续受该门禁约束。
+- Next: 依序实施 Task 4、5、6、7；然后在获得可资格化的固定 ngspice/WASM 发行物或经批准的构建路线后恢复 Task 1。Task 8–23 继续受该门禁约束。
 - Unverified: ngspice WASM 候选及 ABI、PWA 离线/原子更新、目标架构产品行为、学习任务成功率和性能指标尚未实现或验证。
 
 ## Log
@@ -73,3 +73,9 @@
 - Verified: 在 Node `24.15.0` 下冻结安装、`pnpm check`、31 个遗留单元测试、`pnpm build`、Chromium 生产预览网络门禁、卫生单测及 `pnpm release:hygiene` 通过；gitleaks `8.30.1 --no-git --redact` 对当前工作树为 0 finding；生产依赖 audit 的 high/critical/moderate/low 均为 0。
 - Deviation: 用户授权将未资格化的 Task 1 运行时门禁延后，先实施 Task 2–7；这一顺序变化不允许 Task 8–23 绕过 Task 1。
 - Remaining: 远端 Git 完整历史、旧 ZIP/源码归档和旧发布资产的清理仍需仓库所有者提供单独的红脱敏证据；本地当前树清洁不等于这些位置已清洁。
+
+### 2026-08-28 — Task 3 project contracts and trust boundary completed
+
+- Completed: 建立 `CircuitProjectV2` 单一持久化领域契约、`simulation/contracts.ts` 单向仿真契约、严格 Zod v2 项目解析与 Web Crypto canonical SHA-256。
+- Completed: 对 ID/refdes/SPICE token、SI 数值、源波形、分析、模型、探针、断言、角点、布局、结构大小、重复键及跨集合引用实施显式限制；非有限数与无效 PULSE 保持稳定诊断。
+- Verified: 集中 schema/hash 测试 3/3 通过；严格 `pnpm check` 通过；完整遗留单测 9 文件、34 测试通过。该任务只新增类型、解析、hash 和夹具，不改变 UI 或遗留数值求解器行为。
