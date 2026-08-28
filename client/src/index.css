@@ -1,7 +1,5 @@
 /* 精密实验档案：深色仪器台、极细分割线、萤光石灰仅表示运行/选中，青蓝仅表示测量结果。 */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
-@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -25,8 +23,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-sans: "Noto Sans SC", sans-serif;
-  --font-mono: "IBM Plex Mono", monospace;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
 
 :root, .dark {
@@ -54,7 +52,7 @@
 
 * { box-sizing: border-box; }
 html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
-body { background: var(--background); color: var(--foreground); font-family: "Noto Sans SC", sans-serif; overflow: hidden; }
+body { background: var(--background); color: var(--foreground); font-family: var(--font-sans); overflow: hidden; }
 button, input { font: inherit; }
 button { border: 0; color: inherit; }
 button:focus-visible, input:focus-visible, [role="button"]:focus-visible { outline: 2px solid #c7f43d; outline-offset: 2px; }
