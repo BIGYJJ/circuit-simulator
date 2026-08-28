@@ -2,11 +2,11 @@
 
 ## Current Status
 
-- Phase: Task 3 complete; Task 4–7 queued before deferred Task 1 qualification.
+- Phase: Task 4 complete; Task 5–7 queued before deferred Task 1 qualification.
 - Completed: 仓库/产品基线审计、需求 R1–R10、用户批准的方案 A、详细架构、canonical Task 1–23 实施计划、Task 2 静态化安全清理，以及本地 Git 工作树、凭据撤销/轮换确认和固定 gitleaks `v8.30.1` 前置核验。
-- In progress: 按用户明确优先级先执行不依赖数值运行时的 Task 4–7。
+- In progress: 按用户明确优先级先执行不依赖数值运行时的 Task 5–7。
 - Deferred gate: Task 1 仍要求单一、固定、可审计的 ngspice/WASM 在 Chromium、Firefox、WebKit 中通过全部数值/清理/资源资格化；现有候选没有通过预检，未以公式、云端或第二求解器替代。
-- Next: 依序实施 Task 4、5、6、7；然后在获得可资格化的固定 ngspice/WASM 发行物或经批准的构建路线后恢复 Task 1。Task 8–23 继续受该门禁约束。
+- Next: 依序实施 Task 5、6、7；然后在获得可资格化的固定 ngspice/WASM 发行物或经批准的构建路线后恢复 Task 1。Task 8–23 继续受该门禁约束。
 - Unverified: ngspice WASM 候选及 ABI、PWA 离线/原子更新、目标架构产品行为、学习任务成功率和性能指标尚未实现或验证。
 
 ## Log
@@ -79,3 +79,9 @@
 - Completed: 建立 `CircuitProjectV2` 单一持久化领域契约、`simulation/contracts.ts` 单向仿真契约、严格 Zod v2 项目解析与 Web Crypto canonical SHA-256。
 - Completed: 对 ID/refdes/SPICE token、SI 数值、源波形、分析、模型、探针、断言、角点、布局、结构大小、重复键及跨集合引用实施显式限制；非有限数与无效 PULSE 保持稳定诊断。
 - Verified: 集中 schema/hash 测试 3/3 通过；严格 `pnpm check` 通过；完整遗留单测 9 文件、34 测试通过。该任务只新增类型、解析、hash 和夹具，不改变 UI 或遗留数值求解器行为。
+
+### 2026-08-28 — Task 4 one SPICE source allowlist completed
+
+- Completed: 在浏览器安全模块中实现唯一 `parseAndValidateSpiceSource` 和 `validateProjectModels` 路径，集中处理物理行 LF 规范化、续行连接、受限数值 suffix、token/refdes/参数验证、支持元件、声明块、分析语句和模型元数据复验。
+- Completed: `editable-circuit` 与 `opaque-model` 使用显式 allowlist；`.control/.endc`、`.shell`、`.include/.lib`、路径/命令替换和未知指令均在 hash、保存、图构建或 Worker 前拒绝，并保留续行涵盖的物理行范围。
+- Verified: 3 项集中解析器测试覆盖续行绕过、子电路引脚/参数顺序、合法编辑网表与控制块拒绝；`pnpm check` 通过；完整单测 10 文件、37 测试通过。尚未把任何未经 Task 1 资格化的运行时接入该解析边界。

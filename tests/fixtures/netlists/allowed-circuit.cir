@@ -1,0 +1,6 @@
+Divider
+V1 IN 0 9
+R1 IN OUT 1k
+R2 OUT 0 2k
+.op
+.end
