@@ -1,0 +1,6 @@
+/** FLUXLAB project library: a native, local-first entry point with no network or hosted account dependency. */
+import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
+import { createDividerTemplate } from "../../domain/project/templates";
+import { listProjects, saveProject, type ProjectSummary } from "../../storage/indexeddb";
+export default function ProjectLibrary() { const [, navigate] = useLocation(); const [projects, setProjects] = useState<ProjectSummary[]>([]); useEffect(() => { void listProjects().then((result) => result.ok && setProjects(result.value)); }, []); const create = async () => { const project = await createDividerTemplate(crypto.randomUUID(), new Date().toISOString()); if (!project.ok) return; const saved = await saveProject(null, project.value); if (saved.ok) navigate(`/project/${saved.value.id}`); }; return <main className="flux-page"><p className="flux-kicker">FLUXLAB / LOCAL PROJECTS</p><h1>从真实电路事实开始</h1><button type="button" onClick={() => void create()}>新建分压项目</button><section>{projects.map((project) => <button type="button" key={project.projectId} onClick={() => navigate(`/project/${project.projectId}`)}>{project.title} · 修订 {project.revision}</button>)}</section></main>; }

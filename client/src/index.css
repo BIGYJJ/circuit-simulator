@@ -53,6 +53,11 @@
 * { box-sizing: border-box; }
 html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
 body { background: var(--background); color: var(--foreground); font-family: var(--font-sans); overflow: hidden; }
+.flux-page { min-height: 100vh; overflow: auto; padding: clamp(2rem, 8vw, 8rem); background: radial-gradient(circle at 100% 0, #1a2410 0, #080a09 42rem); color: #f1f3eb; }
+.flux-page h1 { max-width: 18ch; margin: .35rem 0 2rem; font-size: clamp(2rem, 5vw, 4.5rem); line-height: .95; }
+.flux-page button { margin: .35rem; border: 1px solid rgba(199,244,61,.7); background: #c7f43d; padding: .8rem 1rem; color: #101307; font-weight: 800; cursor: pointer; }
+.flux-page input { display: block; margin-top: .5rem; border: 1px solid #65735a; background: #111312; padding: .65rem; color: inherit; }
+.flux-kicker { color: #c7f43d; font-family: var(--font-mono); font-size: .75rem; letter-spacing: .16em; }
 button, input { font: inherit; }
 button { border: 0; color: inherit; }
 button:focus-visible, input:focus-visible, [role="button"]:focus-visible { outline: 2px solid #c7f43d; outline-offset: 2px; }

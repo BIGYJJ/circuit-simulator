@@ -1,0 +1,3 @@
+/** FLUXLAB settings: reports native browser capability truthfully without unavailable preference or engine controls. */
+import { useEffect, useState } from "react";
+export default function SettingsPage() { const [storage, setStorage] = useState("正在读取"); useEffect(() => { void navigator.storage?.estimate?.().then((value) => setStorage(`存储配额 ${value.quota ?? "未知"} 字节`)).catch(() => setStorage("存储估算不可用")); }, []); return <main className="flux-page"><p className="flux-kicker">FLUXLAB / SETTINGS</p><h1>本地运行状态</h1><p>{navigator.onLine ? "在线" : "离线"}</p><p>{storage}</p><p>引擎：尚未资格化</p><p>Service Worker：尚未安装</p></main>; }

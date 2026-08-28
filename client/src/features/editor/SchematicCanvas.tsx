@@ -1,0 +1,3 @@
+/** FLUXLAB SVG canvas: presents persisted v2 schematic facts without calculating or claiming electrical results. */
+import type { CircuitProjectV2 } from "../../domain/project/project-v2";
+export function SchematicCanvas({ project }: { project: CircuitProjectV2 }) { return <svg viewBox="0 0 800 320" role="img" aria-label="原理图画布" className="flux-schematic">{project.schematic.components.map((component, index) => <g key={component.id} data-testid={`component-${component.id}`} tabIndex={0}><rect x={70 + index * 145} y="110" width="100" height="64" fill="#111312" stroke="#c7f43d"/><text x={80 + index * 145} y="148" fill="#f1f3eb">{component.refdes}</text></g>)}</svg>; }

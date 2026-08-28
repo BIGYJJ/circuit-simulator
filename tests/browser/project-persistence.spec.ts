@@ -1,0 +1,2 @@
+import { expect, test } from "@playwright/test";
+test("creates and reloads one locally persisted divider project", async ({ page }) => { await page.goto("/"); await page.getByRole("button", { name: "新建分压项目" }).click(); await expect(page.getByTestId("project-revision")).toHaveText("修订 1 / 电气 1"); const url = page.url(); await page.reload(); await expect(page).toHaveURL(url); await expect(page.getByTestId("project-revision")).toHaveText("修订 1 / 电气 1"); });

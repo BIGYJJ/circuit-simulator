@@ -1,0 +1,2 @@
+/** FLUXLAB properties panel: emits validated editor intents only; project mutation stays in applyProjectCommand. */
+export function PropertiesPanel({ resistanceOhm, onApply }: { resistanceOhm: number; onApply(value: number): void }) { return <section aria-label="元件属性"><label>电阻（Ω）<input aria-label="电阻（Ω）" defaultValue={resistanceOhm} onBlur={(event) => onApply(Number(event.currentTarget.value))} /></label></section>; }
