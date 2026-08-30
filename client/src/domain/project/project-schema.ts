@@ -50,7 +50,14 @@ const paramName = z
     }
   });
 const spiceSymbol = z.string().regex(TOKEN_RE);
-const netLabel = z.string().regex(NET_LABEL_RE, { error: "invalid net label" });
+const netLabel = z
+  .string()
+  .regex(NET_LABEL_RE, { error: "invalid net label" })
+  .superRefine((value, ctx) => {
+    if (isReservedKey(value)) {
+      ctx.addIssue({ code: "custom", message: "reserved net label", params: { diagnosticCode: "SCHEMA_RESERVED_KEY" } });
+    }
+  });
 
 function refinePulseTimes(
   value: { delayS: number; riseS: number; fallS: number; widthS: number; periodS: number },

@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 6 project workspace persistence landed
-- Completed: Task 1–6。
-- In progress: 准备提交 Task 6，随后进入 Task 7。
+- Phase: Task 7 schematic graph and ERC landed
+- Completed: Task 1–7。
+- In progress: 准备提交 Task 7，随后进入 Task 8。
 - Blocked: 无。
-- Next: Task 7 原理图图与 ERC。
+- Next: Task 8 确定性网表编译。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；仿真 Worker、PWA 与完整工作台仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 7 built schematic graph and ERC diagnostics
+
+- Completed: 固定引脚注册表、两遍并查集、`runErc`。`pnpm vitest run client/src/domain/schematic/graph.test.ts` 8/8；`pnpm check` exit 0；`pnpm test` 64/64。
+- Verified: `Signal_A`/`signal_a` 合并为 `SIGNAL_A`；同网冲突标签 `GRAPH_CONFLICTING_LABELS`；`a:b`/`c` 与 `a`/`b:c` 端点键不同；打乱数组/移动布局图不变；并行 R3 共享节点；悬空 R2 报 `ERC_FLOATING_REQUIRED_PIN`；V1 短路报 `ERC_VOLTAGE_SOURCE_SHORT`。返回的 node map 无原型。
+- Deviation: 地元件引脚保持 `p`，与 Task 5/6 模板和夹具一致；节点名仍为 `0`。网标签补了 Task 3 遗漏的保留字拒绝。
+- Reason: 已落盘项目与模板都使用 `GND.p`；改成 `gnd` 会在 Task 8 前拆掉工作台。
+- Remaining: Task 8–23。
 
 ### 2026-08-31 — Task 6 persisted one versioned project workspace
 

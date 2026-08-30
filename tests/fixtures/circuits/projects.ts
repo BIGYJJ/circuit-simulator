@@ -95,3 +95,61 @@ export function dividerProjectFixture(): CircuitProjectV2 {
     notes: [],
   };
 }
+
+function cloneDivider(): CircuitProjectV2 {
+  return structuredClone(dividerProjectFixture());
+}
+
+export function labelledProjectFixture(first: string, second: string): CircuitProjectV2 {
+  const project = cloneDivider();
+  project.id = "proj-labelled";
+  const mid = project.schematic.wires.find(item => item.id === "wire-r1-r2");
+  const top = project.schematic.wires.find(item => item.id === "wire-v1-r1");
+  if (mid) mid.netLabel = first;
+  if (top) top.netLabel = second;
+  return project;
+}
+
+export function conflictingLabelProjectFixture(first: string, second: string): CircuitProjectV2 {
+  const project = cloneDivider();
+  project.id = "proj-conflict-labels";
+  project.schematic.wires.push({
+    id: "wire-label-conflict",
+    from: { componentId: "R1", pin: "n" },
+    to: { componentId: "R2", pin: "p" },
+    netLabel: second,
+  });
+  const mid = project.schematic.wires.find(item => item.id === "wire-r1-r2");
+  if (mid) mid.netLabel = first;
+  return project;
+}
+
+export function parallelLoadProjectFixture(): CircuitProjectV2 {
+  const project = cloneDivider();
+  project.id = "proj-parallel";
+  project.schematic.components.push({ id: "R3", refdes: "R3", kind: "resistor", params: { resistanceOhm: 2000 } });
+  project.layout.components.R3 = { x: 160, y: 240, rotation: 0 };
+  project.schematic.wires.push(
+    { id: "wire-r3-p", from: { componentId: "R3", pin: "p" }, to: { componentId: "R2", pin: "p" } },
+    { id: "wire-r3-n", from: { componentId: "R3", pin: "n" }, to: { componentId: "R2", pin: "n" } }
+  );
+  return project;
+}
+
+export function disconnectedSingletonProjectFixture(): CircuitProjectV2 {
+  const project = cloneDivider();
+  project.id = "proj-floating";
+  project.schematic.wires = project.schematic.wires.filter(item => item.id !== "wire-r2-gnd");
+  return project;
+}
+
+export function voltageSourceShortProjectFixture(): CircuitProjectV2 {
+  const project = cloneDivider();
+  project.id = "proj-vshort";
+  project.schematic.wires.push({
+    id: "wire-v1-short",
+    from: { componentId: "V1", pin: "p" },
+    to: { componentId: "V1", pin: "n" },
+  });
+  return project;
+}
