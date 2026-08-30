@@ -113,3 +113,4 @@ temp/
 .project-config.json
 .serena/
 /tests/.artifacts/
+vite.config.ts.timestamp-*.mjs

@@ -73,7 +73,10 @@ export function resolveBuildIdentity(root, env = process.env, options = {}) {
       porcelain: execSync("git status --porcelain=v1 --untracked-files=all", { cwd: root, encoding: "utf8" }),
     };
     if (git.head !== source) fail("BUILD_PURPOSE_RELEASE", "HEAD must equal RELEASE_SOURCE_COMMIT");
-    if (String(git.porcelain ?? "").trim()) fail("BUILD_PURPOSE_RELEASE", "release requires a clean worktree");
+    const dirty = String(git.porcelain ?? "")
+      .split(/\r?\n/)
+      .filter(line => line.trim() && !/vite\.config\.ts\.timestamp-/.test(line));
+    if (dirty.length) fail("BUILD_PURPOSE_RELEASE", "release requires a clean worktree");
     const identity = { purpose: "release", appBuildId, releaseSourceCommit: source, nonReleaseBuild: false };
     if (!isReleasePredicate(identity)) fail("BUILD_PURPOSE_RELEASE", "release identity is invalid");
     return identity;

@@ -65,7 +65,10 @@ function readGit(options) {
 function assertClean(options) {
   const git = readGit(options);
   if (git.head !== options.sourceCommit) fail("RELEASE_HEAD", "HEAD does not match releaseSourceCommit");
-  if (String(git.porcelain ?? "").trim()) fail("RELEASE_DIRTY", "worktree is not clean");
+  const dirty = String(git.porcelain ?? "")
+    .split(/\r?\n/)
+    .filter(line => line.trim() && !/vite\.config\.ts\.timestamp-/.test(line));
+  if (dirty.length) fail("RELEASE_DIRTY", "worktree is not clean");
 }
 
 function requiredTarget(phase) {
@@ -211,16 +214,26 @@ export async function runReleaseGates(options) {
     if (commands.map(item => item.id).join("\0") !== PRE_MANIFEST_GATE_IDS.join("\0") && !options.commands) {
       fail("RELEASE_GATES", "pre-manifest command list drifted from the fixed gate IDs");
     }
+    const releaseFrom = PRE_MANIFEST_GATE_IDS.indexOf("release-build");
     for (const gate of commands) {
       const started = new Date().toISOString();
+      const gateEnv = { ...env };
+      const gateIndex = PRE_MANIFEST_GATE_IDS.indexOf(gate.id);
+      if (!options.commands && releaseFrom >= 0 && gateIndex >= releaseFrom) {
+        gateEnv.BUILD_PURPOSE = "release";
+        gateEnv.APP_BUILD_ID = options.appBuildId;
+        gateEnv.RELEASE_SOURCE_COMMIT = options.sourceCommit;
+      } else {
+        delete gateEnv.BUILD_PURPOSE;
+      }
       if (options.commands) {
         if (gate.id === "clean-entry" || gate.id === "clean-before-release-build" || gate.id === "clean-exit") {
           assertClean(options);
         } else {
-          exec(gate.argv[0], gate.argv.slice(1), { env, cwd });
+          exec(gate.argv[0], gate.argv.slice(1), { env: gateEnv, cwd });
         }
       } else {
-        runBuiltin(gate, { ...options, runRoot }, env, exec);
+        runBuiltin(gate, { ...options, runRoot }, gateEnv, exec);
       }
       writeReport(join(evidenceDir, `${gate.id}.json`), {
         gateId: gate.id,

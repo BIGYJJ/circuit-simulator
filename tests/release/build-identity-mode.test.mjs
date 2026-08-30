@@ -91,6 +91,12 @@ test("release identity requires a matching clean HEAD", () => {
   assert.equal(identity.appBuildId, `git-${commit}`);
   assert.equal(identity.nonReleaseBuild, false);
   assert.equal(isReleasePredicate(identity), true);
+  const withViteTemp = resolveBuildIdentity(
+    process.cwd(),
+    { BUILD_PURPOSE: "release", RELEASE_SOURCE_COMMIT: commit, APP_BUILD_ID: `git-${commit}` },
+    { git: { head: commit, porcelain: "?? vite.config.ts.timestamp-1-abc.mjs\n" } }
+  );
+  assert.equal(withViteTemp.appBuildId, `git-${commit}`);
   assert.throws(
     () =>
       resolveBuildIdentity(
