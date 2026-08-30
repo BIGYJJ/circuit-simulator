@@ -18,6 +18,7 @@ const skipServer = process.env.FLUXLAB_SKIP_WEBSERVER || target === "release-hos
 export default defineConfig({
   testDir: "tests/browser",
   fullyParallel: true,
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: 0,
   timeout: 180_000,
@@ -33,7 +34,10 @@ export default defineConfig({
   webServer: skipServer
     ? undefined
     : {
-        command: "corepack pnpm build && node scripts/serve-local-rc.mjs",
+        command:
+          process.env.FLUXLAB_SKIP_BUILD === "1"
+            ? "node scripts/serve-local-rc.mjs"
+            : "corepack pnpm build && node scripts/serve-local-rc.mjs",
         url: "http://127.0.0.1:4173",
         reuseExistingServer: false,
         timeout: 180_000,

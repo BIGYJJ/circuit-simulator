@@ -223,6 +223,7 @@ export async function runReleaseGates(options) {
         gateEnv.BUILD_PURPOSE = "release";
         gateEnv.APP_BUILD_ID = options.appBuildId;
         gateEnv.RELEASE_SOURCE_COMMIT = options.sourceCommit;
+        if (gate.id !== "release-build") gateEnv.FLUXLAB_SKIP_BUILD = "1";
       } else {
         delete gateEnv.BUILD_PURPOSE;
       }
