@@ -119,6 +119,17 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes,
       },
     }),
+    {
+      name: "inject-build-identity-html",
+      transformIndexHtml(html) {
+        const tags = [
+          `<meta name="fluxlab-app-build-id" content="${buildIdentity.appBuildId}" />`,
+          `<meta name="fluxlab-engine-build-id" content="${fingerprint.engineBuildId}" />`,
+          `<meta name="fluxlab-result-transport" content="${fingerprint.resultTransport}" />`,
+        ].join("\n    ");
+        return html.replace("</head>", `    ${tags}\n  </head>`);
+      },
+    },
     assertPwaPrecache(),
   ],
   resolve: {
