@@ -38,7 +38,27 @@ export interface RuntimeLimits {
   maxSingleVectorBytes: number;
   maxRawResultBytes: number;
   maxSnapshotTransferBytes: number;
+  maxExpandedNetlistBytes: number;
 }
+
+export interface ResourceEstimate {
+  axisPoints: number;
+  resultPoints: number;
+  maxSingleVectorBytes: number;
+  rawResultBytes: number;
+  snapshotTransferBytes: number;
+  rawfileFsBytes: number;
+  modelUtf8Bytes: number;
+  expandedNetlistBytes: number;
+  virtualFsBytes: number;
+}
+
+export interface RunPolicy {
+  timeoutMs: number;
+  keepLastRuns: number;
+}
+
+export type QualifiedResultTransport = ResultTransport;
 
 export interface AdapterResult {
   exitCode: number;

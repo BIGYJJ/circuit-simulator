@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 8 deterministic compiler landed
-- Completed: Task 1–8。
-- In progress: 准备提交 Task 8，随后进入 Task 9。
+- Phase: Task 9 resource limits landed
+- Completed: Task 1–9。
+- In progress: 准备提交 Task 9，随后进入 Task 10。
 - Blocked: 无。
-- Next: Task 9 运行资源估计。
+- Next: Task 10 资格化 ngspice adapter。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；仿真 Worker、PWA 与完整工作台仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 9 enforced deterministic simulation resource limits
+
+- Completed: `DEFAULT_RUNTIME_LIMITS`/`DEFAULT_RUN_POLICY`、`estimateRunResources`、`checkRunResourceLimits`。`pnpm exec vitest run client/src/simulation/resource-estimator.test.ts` 7/7；`pnpm check` exit 0。
+- Verified: transient 恰为 2,000,000 点通过、再多一点失败；DC `0..0.3/0.1` 估 4 点；AC 双探针五投影 raw 计一次、snapshot 按投影计费；callback 的 rawfileFsBytes=0。
+- Deviation: 64 MiB snapshot 边界用 `checkRunResourceLimits` 测 ±1 字节，因为 2,000,000 点上限使 snapshot 最多 16 MiB，无法同时逼近 64 MiB。
+- Reason: 全局点数顶比 snapshot 字节顶更紧，不能为测 snapshot 而放松点数门。
+- Remaining: Task 10–23。
 
 ### 2026-08-31 — Task 8 compiled deterministic SPICE netlists
 
