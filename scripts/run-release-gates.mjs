@@ -36,8 +36,15 @@ function defaultGit(cwd) {
   };
 }
 
+function spawnCommand(command) {
+  if (process.platform === "win32" && (command === "corepack" || command === "pnpm" || command === "npm")) {
+    return `${command}.cmd`;
+  }
+  return command;
+}
+
 function defaultExec(command, args, options = {}) {
-  execFileSync(command, args, { stdio: "inherit", ...options });
+  execFileSync(spawnCommand(command), args, { stdio: "inherit", ...options });
   return { status: 0 };
 }
 
@@ -158,7 +165,7 @@ function runBuiltin(gate, options, env, exec) {
   if (gate.builtin === "audit") {
     let json = "";
     try {
-      json = execFileSync("corepack", ["pnpm", "audit", "--prod", "--json"], {
+      json = execFileSync(spawnCommand("corepack"), ["pnpm", "audit", "--prod", "--json"], {
         cwd,
         env,
         encoding: "utf8",
