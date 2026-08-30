@@ -10,7 +10,8 @@
 | Dependency allowlist | Pass | runtime 8 / dev 12；无 optional/bundled/peer/URL/git specifier |
 | License inventory | Pass | `create-license-inventory.mjs` 写入 `THIRD_PARTY_NOTICES.md` |
 | Frozen lockfile | Pass | 去掉 `fake-indexeddb` 后二次 `--frozen-lockfile` 不再改字节 |
-| Production host | Pending | 无 `FLUXLAB_RELEASE_BASE_URL` / `FLUXLAB_PROVIDER_RELEASE_ID` |
+| Step 11 local RC | Pass | `releaseRunId=9e49d965774849239254c177b1d8f79b`；`releaseSourceCommit=6b2b123684b97b23a5f90c46a6f2567c1fca6b5d`；pre/post 全部门禁 `passed`；资格 3/3、core 27/27、Chromium 22/22；gitleaks 三处 0 findings；`H_before === H_after` |
+| Production host | Pending | 无 `FLUXLAB_RELEASE_BASE_URL` / `FLUXLAB_PROVIDER_RELEASE_ID`；未跑 external 相 |
 | Human study | Pending | 仅有协议模板；无参与者证据，不得报学习成功率 |
 | Owner hygiene | Pending | 远端历史/旧归档/发布资产清理仍待 owner |
 

@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 23 发布流水线实现已落地；唯一 RC 与远端/人体门禁仍待运维与参与者。
-- Completed: Task 1–23 实现（Step 10）。
+- Phase: Task 23 Step 11 本地唯一 RC 已绿；远端部署与人体学习仍待运维/参与者。
+- Completed: Task 1–23 实现与 Step 11 本地 pre-manifest / manifest / post-manifest。
 - In progress: 无产品实现任务。
 - Blocked: 生产主机、提供商 release ID、人体学习成功率、远端历史/归档清理。
-- Next: 从干净 SHA 跑唯一 RC（Step 11），再由运维部署并核验远端（Step 12）。
+- Next: 运维提供 `FLUXLAB_RELEASE_BASE_URL`、`FLUXLAB_PROVIDER_RELEASE_ID` 与 custody 后跑 Step 12；不得编造主机名或部署命令。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；生产主机与人体学习门禁。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 23 Step 11 built the sole local RC from a clean SHA
+
+- Completed: 从干净 `6b2b123684b97b23a5f90c46a6f2567c1fca6b5d` 跑通 pre-manifest → `release-manifest.json` → post-manifest。`releaseRunId=9e49d965774849239254c177b1d8f79b`。资格门 3/3、core 27/27、Chromium suite 22/22；gitleaks history / unpacked / final-dist 均为 0 findings；`H_before === H_after` = `f5fceb73af4874b9e1d3eb845108e1616ef8e91f3ff9dc9864be7f0c29de6c51`；`pnpm audit --prod` high/critical=0。
+- Verified: `appBuildId=git-6b2b123684b97b23a5f90c46a6f2567c1fca6b5d`；engine `ngspice-46-emscripten-singlethread-256m-20260527`；transport `binary-rawfile`；source archive SHA-256 `0a382b0e11ad1fc041c58c5c2dbea8995883b3da2a8c51c395bec267ce609062`；门禁后 HEAD 与工作树仍等于该 SHA。未提交 `dist/`、evidence 或 PWA fixture。
+- Deviation: WebKit 资格门对 WASM 进程崩溃做了最多 2 次重试；性能规格仍为 `retries: 0`。取消运行改为立即恢复 Run 按钮，终端写入在后台完成。未部署生产主机。
+- Reason: Step 12 需要运维提供的 HTTPS 基址、不可变 provider release ID 与 custody；代理不得编造。人体学习成功率不能用自动化浏览器顶替。
+- Remaining: Step 12 远端静态/浏览器双证据、study instance、人体阈值与 owner 历史清理。
 
 ### 2026-08-31 — Task 23 locked the reproducible simulator release pipeline
 
