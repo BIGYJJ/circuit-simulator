@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 11 run records landed
-- Completed: Task 1–11。
-- In progress: Task 12 测量与断言求值。
+- Phase: Task 12 measurements landed
+- Completed: Task 1–12。
+- In progress: Task 13 Worker generation。
 - Blocked: 无。
-- Next: Task 12 受控测量与捕获断言集合。
+- Next: Task 13 仿真入口、取消、超时与原子完成。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；仿真 Worker、PWA 与完整工作台仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 12 evaluated run-bound measurements and assertions
+
+- Completed: `evaluateMeasurement`/`evaluateAssertionSet`/`evaluateCapturedAssertionSet`。`pnpm exec vitest run client/src/simulation/measurements.test.ts client/src/simulation/run-record.test.ts` 9/9；`pnpm check` exit 0。
+- Verified: valueAt 插值与轴外拒绝；min/max/mean；上升 crossing；线性 −3 dB；near 通过、gt 失败、单位错误为 `error`；电气修订不匹配拒绝；追加求值不改 snapshot 向量 ID；其他分析断言不改变本分析 set hash。
+- Deviation: 断言哈希公式仍由 `run-record.ts` 拥有，`measurements.ts` 再导出，避免第二套公式。
+- Reason: Task 11 已落地唯一 SHA 公式，Task 12 只增加求值语义。
+- Remaining: Task 13–23。
 
 ### 2026-08-31 — Task 11 validated and persisted traceable run records
 
