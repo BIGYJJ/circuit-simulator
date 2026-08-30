@@ -12,6 +12,7 @@ import ComponentPalette from "../features/editor/ComponentPalette";
 import PropertiesPanel from "../features/editor/PropertiesPanel";
 import SchematicCanvas from "../features/editor/SchematicCanvas";
 import { isElectricalCommand, projectReducer, type ProjectCommand } from "../features/editor/project-reducer";
+import ExportMenu from "../features/analysis/ExportMenu";
 import ResultDock from "../features/instruments/ResultDock";
 import ModelPanel from "../features/models/ModelPanel";
 import VerificationPanel from "../features/verification/VerificationPanel";
@@ -523,6 +524,12 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
                 await refreshGate();
               })();
             }}
+          />
+          <ExportMenu
+            project={editor.present}
+            selectedRun={selectedRun}
+            records={records.filter((item): item is Exclude<(typeof records)[number], { status: "running" }> => item.status !== "running")}
+            onImported={() => void refreshRuns(undefined, analysisId)}
           />
           <ResultDock run={selectedRun} compare={compareRun} />
           <RunHistory

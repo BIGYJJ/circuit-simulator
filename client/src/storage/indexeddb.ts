@@ -719,6 +719,62 @@ export async function createRunningRun(run: RunningRunRecord): Promise<DomainRes
   return { ok: true, value: created, diagnostics: [] };
 }
 
+export async function adoptImportedRun(record: TerminalRunRecord): Promise<DomainResult<StoredRunEnvelope>> {
+  const parsed = await parseRunRecord(record);
+  if (!parsed.ok) return parsed;
+  if (parsed.value.status === "running") return fail("RUN_IMPORT_NOT_TERMINAL", "running records cannot be adopted");
+  const immutableBaseHash = await computeImmutableBaseHash(parsed.value);
+  const db = await openDatabase();
+  let created: StoredRunEnvelope | undefined;
+  let code = "STORAGE_WRITE_FAILED";
+  try {
+    const tx = db.transaction(["projects", "runSequences", "runs"], "readwrite");
+    const revisionRange = IDBKeyRange.only([parsed.value.projectId, parsed.value.projectRevision, parsed.value.electricalRevision]);
+    const cursorReq = tx.objectStore("projects").index("revisionKey").openKeyCursor(revisionRange);
+    cursorReq.onsuccess = () => {
+      if (!cursorReq.result) {
+        code = "STORAGE_RUN_STALE_PROJECT";
+        tx.abort();
+        return;
+      }
+      const sequenceReq = tx.objectStore("runSequences").get(parsed.value.projectId);
+      sequenceReq.onsuccess = () => {
+        const sequence = sequenceReq.result as StoredRunSequence | undefined;
+        if (!sequence || !Number.isSafeInteger(sequence.nextAttempt) || sequence.nextAttempt < 1) {
+          code = "STORAGE_INVALID_RUN_SEQUENCE";
+          tx.abort();
+          return;
+        }
+        if (sequence.nextAttempt === Number.MAX_SAFE_INTEGER) {
+          code = "STORAGE_RUN_SEQUENCE_EXHAUSTED";
+          tx.abort();
+          return;
+        }
+        const localAttempt = sequence.nextAttempt;
+        created = {
+          envelopeVersion: 1,
+          storageVersion: 1,
+          localAttempt,
+          immutableBaseHash,
+          record: parsed.value,
+          listKey: deriveRunListKey(parsed.value, localAttempt),
+        };
+        tx.objectStore("runSequences").put({
+          ...sequence,
+          nextAttempt: sequence.nextAttempt + 1,
+          storageVersion: sequence.storageVersion + 1,
+        });
+        tx.objectStore("runs").add(created, parsed.value.runId);
+      };
+    };
+    await waitForTransaction(tx);
+  } catch (error) {
+    return fail(code, error instanceof Error ? error.message : "adoptImportedRun failed");
+  }
+  if (!created) return fail(code, "adoptImportedRun did not persist an envelope");
+  return { ok: true, value: created, diagnostics: [] };
+}
+
 export async function finishRun(candidate: TerminalRunRecord): Promise<DomainResult<StoredRunEnvelope>> {
   const raw = await readRawRun(candidate.runId);
   if (raw === undefined) return fail("STORAGE_NOT_FOUND", "run does not exist");
@@ -1238,6 +1294,7 @@ if (typeof window !== "undefined") {
     acknowledgeLegacyNotice,
     hasAcknowledgedLegacyNotice,
     pruneRuns,
+    adoptImportedRun,
   };
   window.__fluxlabBuildRunningRecord = buildRunningRecordForProject;
 }

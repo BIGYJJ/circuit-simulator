@@ -1,0 +1,5 @@
+FLUXLAB CIRCUIT
+V1 1 0 DC 9
+R1 1 2 1k
+R2 2 0 2k
+.end

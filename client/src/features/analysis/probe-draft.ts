@@ -48,13 +48,15 @@ export async function validateProbeDraft(
       );
     }
   }
+  const analysisNext = { ...analysis, enabledProbes: [...new Set([...analysis.enabledProbes, probe.id])] };
   const next: CircuitProjectV2 = {
     ...project,
     probes: [...project.probes.filter(item => item.id !== probe.id), probe],
+    analyses: project.analyses.map(item => (item.id === analysis.id ? analysisNext : item)),
   };
   const compiled = await compileNetlist({
     project: next,
-    analysis: { ...analysis, enabledProbes: [...new Set([...analysis.enabledProbes, probe.id])] },
+    analysis: analysisNext,
   });
   if (!compiled.ok) return compiled;
   return { ok: true, value: probe, diagnostics: compiled.diagnostics };

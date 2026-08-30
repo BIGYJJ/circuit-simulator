@@ -8,6 +8,8 @@ import {
 } from "../../domain/project/templates";
 import type { Diagnostic, ProjectId } from "../../domain/project/project-v2";
 import LessonCatalog from "../learning/LessonCatalog";
+import ImportProjectDialog from "./ImportProjectDialog";
+import LegacyMigrationCard from "./LegacyMigrationCard";
 import { deleteProject, listProjects, saveProject, type ProjectSummary } from "../../storage/indexeddb";
 
 export default function ProjectLibrary() {
@@ -93,6 +95,8 @@ export default function ProjectLibrary() {
           新建低通交流
         </button>
         <LessonCatalog />
+        <ImportProjectDialog onAdopted={project => navigate(`/project/${project.id}`)} />
+        <LegacyMigrationCard onAdopted={project => navigate(`/project/${project.id}`)} />
         {diagnostics.map(item => (
           <p key={item.code} className="library-diagnostic" data-testid="library-diagnostic">
             {item.code}

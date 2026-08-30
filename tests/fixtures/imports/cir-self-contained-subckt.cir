@@ -1,0 +1,9 @@
+FLUXLAB CIRCUIT
+.subckt DIV a b
+R1 a b 1k
+.ends DIV
+V1 1 0 DC 9
+X1 1 2 DIV
+R2 2 0 2k
+.op
+.end

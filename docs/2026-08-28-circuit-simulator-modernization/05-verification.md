@@ -1,5 +1,13 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 18 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| File codec + v1 migrate | Pass | vitest project-files 7 + migrate-v1 2 |
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Browser import/export | Pass | Playwright Chromium `project-files.spec.ts` 1 passed (15.9s) |
+
 ## Task 17 Changed Functionality
 
 | Check | Status | Fresh evidence |
