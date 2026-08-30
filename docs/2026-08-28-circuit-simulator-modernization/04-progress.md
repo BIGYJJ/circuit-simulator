@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 2 hosted template and telemetry removed
-- Completed: 前置确认 B；基线 `a86e994`；Task 1 `00224ba`；Task 2 删除 Manus/Forge/analytics/Express/server 脚手架，Vite 仅静态预览。
-- In progress: 准备提交 Task 2，随后进入 Task 3。
+- Phase: Task 3 project contracts defined
+- Completed: 前置确认 B；基线 `a86e994`；Task 1 `00224ba`；Task 2 `0416bfc`；Task 3 定义 CircuitProjectV2 / Diagnostic / DomainResult / canonical SHA-256。
+- In progress: 准备提交 Task 3，随后进入 Task 4。
 - Blocked: 无。
-- Next: Task 3 项目契约 / canonical / zod。
+- Next: Task 4 统一 SPICE allowlist 解析器。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；PWA 与产品工作台仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 3 defined versioned project contracts
+
+- Completed: 增加 `project-v2`、zod `.strict()` 边界、`canonicalJson`/`sha256Hex` 与 simulation contracts。`pnpm vitest run client/src/domain/project/project-schema.test.ts` 4/4；`pnpm check` exit 0；`pnpm test` 35/35。
+- Verified: 分压夹具可解析；非法 NaN + PULSE 周期失败返回 `SCHEMA_NON_FINITE`/`SCHEMA_BAD_PULSE`；对象键序哈希一致、数组顺序哈希不同；换行 refdes、错误族前缀、大小写重复 refdes、`.VOUT` 标签和三个保留 id 均被拒绝。
+- Deviation: 无。
+- Reason: 无。
+- Remaining: Task 4–23。Code-level checks passed; product acceptance remains unverified.
 
 ### 2026-08-31 — Task 2 removed hosted template and telemetry
 
