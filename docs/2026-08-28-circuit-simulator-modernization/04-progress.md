@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 4 SPICE allowlist parser landed
-- Completed: Task 1–3；Task 4 单一续行安全 SPICE 解析器与模型复验。
-- In progress: 准备提交 Task 4，随后进入 Task 5。
+- Phase: Task 5 templates and v1 migration landed
+- Completed: Task 1–4；Task 5 divider/RC/LED v2 模板与只预览的 v1 迁移。
+- In progress: 准备提交 Task 5，随后进入 Task 6。
 - Blocked: 无。
-- Next: Task 5 诚实 v2 模板与 v1 迁移。
+- Next: Task 6 修订安全命令、IndexedDB 与首个项目旅程。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；PWA 与产品工作台仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 5 added honest v2 templates and preview-only v1 migration
+
+- Completed: divider/RC/LED 模板；append-only LED v1/v2 与迁移开关模型账本；v1 文档只生成 candidate。`pnpm vitest run` 三个 focused 文件 5/5；`pnpm check` exit 0；`pnpm test` 45/45。
+- Verified: LED 模板 R1=680 Ω 且无 learning；分压迁移保留 R1 布局 x=490；RC 迁移带 `MIGRATION_SWITCH_REQUIRES_REWIRE`；伪造 bundled 声明失败。
+- Deviation: 无。
+- Reason: 无。
+- Remaining: Task 6–23。Code-level checks passed; product acceptance remains unverified.
 
 ### 2026-08-31 — Task 4 enforced one SPICE source allowlist
 

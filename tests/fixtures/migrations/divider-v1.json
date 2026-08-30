@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "9V 分压器实验",
+  "updatedAt": "2026-08-28T00:00:00.000Z",
+  "components": [
+    { "id": "V1", "kind": "voltageSource", "label": "V1", "x": 220, "y": 285, "value": 9 },
+    { "id": "R1", "kind": "resistor", "label": "R1", "x": 490, "y": 215, "value": 1000 },
+    { "id": "R2", "kind": "resistor", "label": "R2", "x": 490, "y": 390, "value": 2000 },
+    { "id": "GND", "kind": "ground", "label": "GND", "x": 490, "y": 545 }
+  ],
+  "wires": [
+    { "id": "w1", "from": { "componentId": "V1", "port": "top" }, "to": { "componentId": "R1", "port": "top" } },
+    { "id": "w2", "from": { "componentId": "R1", "port": "bottom" }, "to": { "componentId": "R2", "port": "top" } },
+    { "id": "w3", "from": { "componentId": "R2", "port": "bottom" }, "to": { "componentId": "GND", "port": "top" } },
+    { "id": "w4", "from": { "componentId": "GND", "port": "top" }, "to": { "componentId": "V1", "port": "bottom" } }
+  ]
+}

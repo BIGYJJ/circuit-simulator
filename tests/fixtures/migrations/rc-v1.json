@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "name": "RC 充电实验",
+  "updatedAt": "2026-08-28T00:00:00.000Z",
+  "components": [
+    { "id": "V1", "kind": "voltageSource", "label": "V1", "x": 230, "y": 328, "value": 5 },
+    { "id": "S1", "kind": "switch", "label": "S1", "x": 400, "y": 190, "closed": true, "switchMode": "charge" },
+    { "id": "R1", "kind": "resistor", "label": "R1", "x": 560, "y": 280, "value": 10000 },
+    { "id": "C1", "kind": "capacitor", "label": "C1", "x": 560, "y": 435, "value": 0.0001, "initialValue": 0 },
+    { "id": "GND", "kind": "ground", "label": "GND", "x": 560, "y": 565 }
+  ],
+  "wires": [
+    { "id": "w1", "from": { "componentId": "V1", "port": "top" }, "to": { "componentId": "S1", "port": "top" } },
+    { "id": "w2", "from": { "componentId": "S1", "port": "bottom" }, "to": { "componentId": "R1", "port": "top" } },
+    { "id": "w3", "from": { "componentId": "R1", "port": "bottom" }, "to": { "componentId": "C1", "port": "top" } },
+    { "id": "w4", "from": { "componentId": "C1", "port": "bottom" }, "to": { "componentId": "GND", "port": "top" } },
+    { "id": "w5", "from": { "componentId": "GND", "port": "top" }, "to": { "componentId": "V1", "port": "bottom" } }
+  ]
+}
