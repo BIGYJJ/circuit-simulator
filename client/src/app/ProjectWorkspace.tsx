@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { APP_BUILD_ID } from "./build-info";
+import { LegacyMigrationNotice, peekLegacyNoticeSession, type LegacyPath } from "./LegacyRedirect";
 import type { AnalysisId, CircuitProjectV2, ComponentId, Diagnostic } from "../domain/project/project-v2";
 import AnalysisPanel from "../features/analysis/AnalysisPanel";
 import DiagnosticsPanel from "../features/analysis/DiagnosticsPanel";
@@ -121,6 +122,8 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
   const searchParams = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
   const lesson = lessonById(searchParams.get("lesson") ?? "");
   const view = (searchParams.get("view") as LessonViewMode | null) ?? (lesson ? "guided" : "standard");
+  const panel = searchParams.get("panel");
+  const [legacyNotice, setLegacyNotice] = useState<LegacyPath | null>(null);
   const [guidedStepId, setGuidedStepId] = useState(lesson?.steps[0]?.id ?? "");
   const currentStep = lesson?.steps.find(item => item.id === guidedStepId) ?? lesson?.steps[0];
   const [loadError, setLoadError] = useState<Diagnostic[] | null>(null);
@@ -153,6 +156,10 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
   const controllerRef = useRef<SimulationController | null>(null);
   const saveBusy = saveState?.status === "saving" || saveState?.status === "dirty";
   const selectedAnalysis = editor.present.analyses.find(item => item.id === analysisId);
+
+  useEffect(() => {
+    setLegacyNotice(peekLegacyNoticeSession());
+  }, [projectId, search]);
 
   useEffect(() => {
     const controller = new SimulationController();
@@ -411,6 +418,7 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
 
   return (
     <div className="workspace-shell">
+      <LegacyMigrationNotice path={legacyNotice} />
       {lesson ? (
         <LessonOverlay
           lesson={lesson}
@@ -462,13 +470,15 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
           onCommand={command => void runCommand(command)}
         />
         <div className="workspace-rail">
-          <AnalysisPanel
-            project={editor.present}
-            analysisId={analysisId}
-            estimateText={estimateText}
-            onSelect={setAnalysisId}
-            onCommand={command => void runCommand(command)}
-          />
+          <div data-testid="workspace-panel-analysis" data-active={panel === "analysis" ? "true" : "false"}>
+            <AnalysisPanel
+              project={editor.present}
+              analysisId={analysisId}
+              estimateText={estimateText}
+              onSelect={setAnalysisId}
+              onCommand={command => void runCommand(command)}
+            />
+          </div>
           <RunControls
             project={editor.present}
             analysisId={analysisId}
@@ -499,6 +509,7 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
           ) : null}
           <ProbePanel project={editor.present} analysis={selectedAnalysis} onCommand={command => void runCommand(command)} />
           <ModelPanel project={editor.present} onCommand={command => void runCommand(command)} />
+          <div data-testid="workspace-panel-verification" data-active={panel === "verification" ? "true" : "false"}>
           <VerificationPanel
             project={editor.present}
             analysis={selectedAnalysis}
@@ -525,6 +536,7 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
               })();
             }}
           />
+          </div>
           <ExportMenu
             project={editor.present}
             selectedRun={selectedRun}

@@ -2,11 +2,8 @@ import { useEffect, useState } from "react";
 import { Route, Switch, useLocation, useParams } from "wouter";
 import ProjectLibrary from "../features/project-library/ProjectLibrary";
 import { openOrCreateLessonProject } from "../features/learning/lessons";
-import DividerLab from "../pages/DividerLab";
-import EngineeringOps from "../pages/EngineeringOps";
-import EngineeringStudio from "../pages/EngineeringStudio";
-import LEDLab from "../pages/LEDLab";
 import NotFound from "../pages/NotFound";
+import LegacyRedirect from "./LegacyRedirect";
 import ProjectWorkspace from "./ProjectWorkspace";
 import SettingsPage from "./SettingsPage";
 
@@ -52,10 +49,10 @@ export default function AppRoutes() {
       <Route path="/settings" component={SettingsPage} />
       <Route path="/learn/:lessonId" component={LearnRoute} />
       <Route path="/project/:projectId" component={ProjectRoute} />
-      <Route path="/engineering/ops" component={EngineeringOps} />
-      <Route path="/engineering" component={EngineeringStudio} />
-      <Route path="/led" component={LEDLab} />
-      <Route path="/divider" component={DividerLab} />
+      <Route path="/engineering/ops">{() => <LegacyRedirect path="/engineering/ops" />}</Route>
+      <Route path="/engineering">{() => <LegacyRedirect path="/engineering" />}</Route>
+      <Route path="/led">{() => <LegacyRedirect path="/led" />}</Route>
+      <Route path="/divider">{() => <LegacyRedirect path="/divider" />}</Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

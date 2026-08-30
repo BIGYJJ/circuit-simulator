@@ -1,5 +1,15 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 19 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Navigation setting APIs | Pass | vitest indexeddb 11/11（含固定 key / 无通用 accessor） |
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Unit | Pass | `pnpm test` 105/105 |
+| Legacy symbols / CSS | Pass | `rg` 旧求解器与 `index.css` lab/ops 选择器均为 0 |
+| Browser redirects | Pass | Playwright Chromium `legacy-routes.spec.ts` 2 passed (12.8s) |
+
 ## Task 18 Changed Functionality
 
 | Check | Status | Fresh evidence |

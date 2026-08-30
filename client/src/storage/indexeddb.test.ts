@@ -15,12 +15,16 @@ import {
   parseStoredLearningEvidenceEnvelope,
   parseStoredSettingEnvelope,
   putLearningEvidence,
+  acknowledgeLegacyNotice,
+  hasAcknowledgedLegacyNotice,
+  loadLastOpenedProject,
   saveLastOpenedProject,
   saveLessonSession,
   saveLocalSettings,
   saveProject,
   type StoredSettingEnvelope,
 } from "./indexeddb";
+import * as indexeddbApi from "./indexeddb";
 import { buildRunningRecordForProject } from "../simulation/run-record";
 
 function deferred<T>() {
@@ -90,6 +94,47 @@ describe("setting envelopes", () => {
     expect(parseStoredSettingEnvelope({ ...lesson, projectKey: ["other", "lesson-session:lesson-a"] }).ok).toBe(false);
     expect(parseStoredSettingEnvelope({ ...local, extra: true }).ok).toBe(false);
     expect(parseStoredSettingEnvelope({ ...local, value: { kind: "local-settings", settings: { schemaVersion: 1 } } }).ok).toBe(false);
+  });
+});
+
+describe("dedicated navigation setting APIs", () => {
+  it("writes only the fixed keys and rejects parser drift", async () => {
+    const project = dividerProjectFixture();
+    expect(await saveProject(null, project)).toMatchObject({ ok: true });
+    const last = await saveLastOpenedProject(project.id);
+    expect(last.ok && last.value.key).toBe("last-opened-project");
+    expect(last.ok && last.value.projectKey).toEqual([project.id, "last-opened-project"]);
+    const loaded = await loadLastOpenedProject();
+    expect(loaded.ok && loaded.value?.projectId).toBe(project.id);
+
+    const notice = await acknowledgeLegacyNotice("/divider");
+    expect(notice.ok && notice.value.key).toBe("legacy-notice:/divider");
+    const dividerAck = await hasAcknowledgedLegacyNotice("/divider");
+    const ledAck = await hasAcknowledgedLegacyNotice("/led");
+    expect(dividerAck.ok && dividerAck.value).toBe(true);
+    expect(ledAck.ok && ledAck.value).toBe(false);
+
+    expect(
+      parseStoredSettingEnvelope({
+        envelopeVersion: 1,
+        storageVersion: 1,
+        key: "legacy-notice:/divider",
+        value: { kind: "last-opened-project", projectId: project.id },
+      }).ok
+    ).toBe(false);
+    expect(
+      parseStoredSettingEnvelope({
+        envelopeVersion: 1,
+        storageVersion: 1,
+        key: "last-opened-project",
+        projectKey: ["other", "last-opened-project"],
+        value: { kind: "last-opened-project", projectId: project.id },
+      }).ok
+    ).toBe(false);
+    expect("writeSetting" in indexeddbApi).toBe(false);
+    expect("readSetting" in indexeddbApi).toBe(false);
+    expect("getSetting" in indexeddbApi).toBe(false);
+    expect("putSetting" in indexeddbApi).toBe(false);
   });
 });
 

@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 18 文件边界 landed
-- Completed: Task 1–18。
-- In progress: Task 19 退役旧求解器。
+- Phase: Task 19 退役旧求解器 landed
+- Completed: Task 1–19。
+- In progress: Task 20 PWA。
 - Blocked: 无。
-- Next: Task 19 旧路由重定向并删除竞争后端。
+- Next: Task 20 原子离线安装与 V1→V2 更新。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；PWA 与完整工作台其余切片仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 19 retired legacy pages and calculation backends
+
+- Completed: `/divider` `/led` 进对应课程，`/engineering` `/engineering/ops` 进最近项目或库页「请先选择项目」；删除全部旧演示页与公式求解器。`pnpm check`；`pnpm test` 105/105；Chromium `legacy-routes` 2 + 回归 divider/analysis/learning 共 11 passed (17.7s)。
+- Verified: 四条旧 URL 直达/重载保持同一课程或面板；首次迁移提示写入 `legacy-notice:<path>`，再次访问不再出现；无项目时不创建默认工程；`rg` 不再命中旧求解器符号与 lab/ops 选择器。
+- Deviation: 重定向只保留一个发布周期，计划于下一正式版本（v2.1）删除 `LegacyRedirect`。
+- Reason: 设计要求旧链接过渡一个发布周期，而不是立刻 404。
+- Remaining: Task 20–23。
 
 ### 2026-08-31 — Task 18 imported, migrated, and exported trusted evidence
 

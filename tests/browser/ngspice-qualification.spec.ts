@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { dividerVoltage, rcChargeVoltage } from "../fixtures/circuits/analytic-baselines";
 
 test("qualifies the pinned runtime, cleanup, cancellation, model loading, and limits", async ({
   page,
@@ -26,9 +27,9 @@ test("qualifies the pinned runtime, cleanup, cancellation, model loading, and li
   }));
   if (status.state !== "done") throw new Error(status.error || "qualification failed");
   const result = await page.evaluate(async () => await window.__qualificationResult);
-  expect(result.dividerVout).toBeCloseTo(6, 6);
-  expect(result.rcAt1Tau).toBeCloseTo(3.160602794, 2);
-  expect(result.rcAt5Tau).toBeCloseTo(4.966310266, 2);
+  expect(result.dividerVout).toBeCloseTo(dividerVoltage(), 6);
+  expect(result.rcAt1Tau).toBeCloseTo(rcChargeVoltage(1), 2);
+  expect(result.rcAt5Tau).toBeCloseTo(rcChargeVoltage(5), 2);
   expect(result.diodeCurrentRatio).toBeGreaterThan(10);
   expect(result.lowpassCutoffHz).toBeGreaterThan(157.56);
   expect(result.lowpassCutoffHz).toBeLessThan(160.75);

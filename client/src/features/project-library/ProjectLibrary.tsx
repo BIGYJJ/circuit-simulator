@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
+import { LegacyMigrationNotice, peekLegacyNoticeSession, type LegacyPath } from "../../app/LegacyRedirect";
 import {
   createDiodeSweepTemplate,
   createDividerTemplate,
@@ -14,6 +15,10 @@ import { deleteProject, listProjects, saveProject, type ProjectSummary } from ".
 
 export default function ProjectLibrary() {
   const [, navigate] = useLocation();
+  const search = useSearch();
+  const searchParams = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  const needProject = searchParams.get("needProject") === "1";
+  const [legacyNotice, setLegacyNotice] = useState<LegacyPath | null>(null);
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
   const [busy, setBusy] = useState(false);
@@ -24,6 +29,10 @@ export default function ProjectLibrary() {
     if (result.ok) setProjects(result.value);
     else setDiagnostics(result.diagnostics);
   }
+
+  useEffect(() => {
+    setLegacyNotice(peekLegacyNoticeSession());
+  }, [search]);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,6 +91,8 @@ export default function ProjectLibrary() {
       </header>
       <section>
         <h1>项目库</h1>
+        <LegacyMigrationNotice path={legacyNotice} />
+        {needProject ? <p data-testid="legacy-need-project">请先选择项目</p> : null}
         <button type="button" onClick={() => void createFrom(createDividerTemplate)} disabled={busy}>
           新建分压项目
         </button>
