@@ -753,6 +753,18 @@ export async function loadRun(runId: RunId): Promise<DomainResult<StoredRunEnvel
   return parseStoredRunEnvelope(raw);
 }
 
+export async function listProjectRunEnvelopes(projectId: ProjectId): Promise<DomainResult<StoredRunEnvelope[]>> {
+  const listed = await listRuns(projectId);
+  if (!listed.ok) return listed;
+  const envelopes: StoredRunEnvelope[] = [];
+  for (const summary of listed.value) {
+    const loaded = await loadRun(summary.runId);
+    if (!loaded.ok) return loaded;
+    if (loaded.value) envelopes.push(loaded.value);
+  }
+  return { ok: true, value: envelopes, diagnostics: [] };
+}
+
 export async function listRuns(projectId: ProjectId): Promise<DomainResult<RunSummary[]>> {
   const db = await openDatabase();
   const summaries: RunSummary[] = [];
@@ -878,6 +890,7 @@ if (typeof window !== "undefined") {
     finishRun,
     recoverInterruptedRuns,
     listRuns,
+    listProjectRunEnvelopes,
     loadRun,
     loadProject,
     saveProject,

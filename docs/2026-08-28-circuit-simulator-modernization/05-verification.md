@@ -1,5 +1,13 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 16 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Verification + measurements + records | Pass | vitest 18/18 |
+| Delivery gate journey | Pass | Playwright Chromium `verification-gates.spec.ts` 1 passed (15.4s) |
+
 ## Task 15 Changed Functionality
 
 | Check | Status | Fresh evidence |

@@ -103,6 +103,10 @@ export class SimulationController {
     };
   }
 
+  isBusy() {
+    return this.busy || Boolean(this.active);
+  }
+
   async run(input: SimulationRunInput): Promise<RunRecord | SimulationNotStarted> {
     if (this.busy || this.active) {
       return notStarted([blocker("RUN_ALREADY_ACTIVE", "another run already owns this controller")]);

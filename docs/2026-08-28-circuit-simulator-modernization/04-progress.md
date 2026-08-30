@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 15 四类分析与仪器 landed
-- Completed: Task 1–15。
-- In progress: Task 16 角点与交付门禁。
+- Phase: Task 16 角点与交付门禁 landed
+- Completed: Task 1–16。
+- In progress: Task 17 课程层。
 - Blocked: 无。
-- Next: Task 16 nominal/corner 序列与三态交付门。
+- Next: Task 17 同一项目/证据 store 上的引导课程。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；PWA 与完整工作台其余切片仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 16 gated nominal and corner run evidence
+
+- Completed: `planAnalysisRuns`/`runAnalysisSeries`/`evaluateDeliveryGate` 与验证面板。focused 单元 18/18；`pnpm check` exit 0；Chromium `verification-gates.spec.ts` 1/1（15.4s）。
+- Verified: 伪造断言/角点零写入；仅名义运行后 `GATE_MISSING_CORNER_RUN`；名义+两角点三 runId 后 `passed`；改容差重新评估不增运行数；改期望为 `failed`；改电阻后 `GATE_STALE_RUN`。
+- Deviation: 浏览器夹具用 ±1.5 V 断言覆盖 1.6 kΩ/2.4 kΩ 角点，避免角点把固定 6 V±10 mV 断言打成失败。
+- Reason: 同一断言集合绑定全部槽位，不能为角点另写期望。
+- Remaining: Task 17–23。
 
 ### 2026-08-31 — Task 15 added traceable analyses, instruments, and comparisons
 

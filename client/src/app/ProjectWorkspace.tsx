@@ -14,11 +14,23 @@ import SchematicCanvas from "../features/editor/SchematicCanvas";
 import { isElectricalCommand, projectReducer, type ProjectCommand } from "../features/editor/project-reducer";
 import ResultDock from "../features/instruments/ResultDock";
 import ModelPanel from "../features/models/ModelPanel";
+import VerificationPanel from "../features/verification/VerificationPanel";
+import { runErc } from "../domain/schematic/diagnostics";
+import { buildSchematicGraph } from "../domain/schematic/graph";
 import type { RunRecord, SuccessfulRunRecord } from "../simulation/contracts";
 import { compileNetlist } from "../simulation/compile-netlist";
 import { estimateRunResources } from "../simulation/resource-estimator";
 import { PINNED_ENGINE, SimulationController } from "../simulation/simulation-controller";
 import { checkRunFreshness } from "../simulation/run-record";
+import {
+  buildDeliveryGateInput,
+  evaluateDeliveryGate,
+  listGateRunEvidence,
+  planAnalysisRuns,
+  reevaluateAssertions,
+  runAnalysisSeries,
+  type DeliveryGateResult,
+} from "../simulation/verification";
 import {
   createProjectSaveLane,
   listRuns,
@@ -101,6 +113,9 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
   const [fresh, setFresh] = useState(false);
   const [running, setRunning] = useState(false);
   const [cancelled, setCancelled] = useState(false);
+  const [seriesBusy, setSeriesBusy] = useState(false);
+  const [gate, setGate] = useState<DeliveryGateResult | null>(null);
+  const stopSeries = useRef(false);
   const [estimateText, setEstimateText] = useState("—");
   const [runDiagnostics, setRunDiagnostics] = useState<Diagnostic[]>([]);
   const [previewDiagnostics, setPreviewDiagnostics] = useState<Diagnostic[]>([]);
@@ -204,6 +219,10 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
   }, [ready, projectId, analysisId]);
 
   useEffect(() => {
+    if (ready) void refreshGate();
+  }, [ready, editor.present, analysisId, records]);
+
+  useEffect(() => {
     let cancelledEstimate = false;
     const analysis = editor.present.analyses.find(item => item.id === analysisId);
     if (!analysis) {
@@ -280,6 +299,39 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
       return;
     }
     await refreshRuns(result.status === "success" ? result.runId : undefined, analysisId);
+  }
+
+  async function refreshGate() {
+    const analysis = editor.present.analyses.find(item => item.id === analysisId);
+    if (!analysis) {
+      setGate(null);
+      return;
+    }
+    const evidence = await listGateRunEvidence(projectId);
+    const graph = buildSchematicGraph(editor.present);
+    const erc = graph.ok ? runErc(editor.present, graph.value) : graph.diagnostics;
+    const input = await buildDeliveryGateInput(editor.present, analysis, PINNED_ENGINE, evidence.ok ? evidence.value : [], erc);
+    if (input.ok) setGate(evaluateDeliveryGate(input.value));
+  }
+
+  async function onRunSeries() {
+    if (!analysisId || !controllerRef.current) return;
+    const planned = planAnalysisRuns(editor.present, analysisId);
+    if (!planned.ok) {
+      setRunDiagnostics(planned.diagnostics);
+      return;
+    }
+    stopSeries.current = false;
+    setSeriesBusy(true);
+    setRunning(true);
+    setCancelled(false);
+    const result = await runAnalysisSeries(controllerRef.current, planned.value, () => stopSeries.current);
+    setSeriesBusy(false);
+    setRunning(false);
+    if (result.status === "stopped" && result.records.some(item => item.status === "cancelled")) setCancelled(true);
+    setRunDiagnostics(result.diagnostics);
+    await refreshRuns(result.records.find(item => item.status === "success")?.runId, analysisId);
+    await refreshGate();
   }
 
   const lastFailed = [...records].reverse().find(item => item.status === "failed");
@@ -376,11 +428,39 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
           <p data-testid="current-R1">{selectedRun ? currentOf(selectedRun, "R1") : "—"}</p>
           <p data-testid="current-R2">{selectedRun ? currentOf(selectedRun, "R2") : "—"}</p>
           <p data-testid="current-R3">{selectedRun ? currentOf(selectedRun, "R3") : "—"}</p>
+          <p data-testid="run-count">{String(records.length)}</p>
+          <p data-testid="assertion-eval-hash">{selectedRun?.assertionEvaluations.at(-1)?.assertionSetHash ?? ""}</p>
           {lastFailed && lastFailed.status === "failed" ? (
             <p data-testid="run-failure-message">{lastFailed.failure.message}</p>
           ) : null}
           <ProbePanel project={editor.present} analysis={selectedAnalysis} onCommand={command => void runCommand(command)} />
           <ModelPanel project={editor.present} onCommand={command => void runCommand(command)} />
+          <VerificationPanel
+            project={editor.present}
+            analysis={selectedAnalysis}
+            gate={gate}
+            seriesBusy={seriesBusy}
+            onCommand={command => void runCommand(command)}
+            onRunSeries={() => void onRunSeries()}
+            onCancelSeries={() => {
+              stopSeries.current = true;
+              void controllerRef.current?.cancel("user").then(() => {
+                setRunning(false);
+                setSeriesBusy(false);
+                setCancelled(true);
+              });
+            }}
+            onReevaluate={() => {
+              void (async () => {
+                const successes = records.filter((item): item is SuccessfulRunRecord => item.status === "success" && item.analysisId === analysisId);
+                for (const run of successes) {
+                  await reevaluateAssertions(editor.present, run, PINNED_ENGINE);
+                }
+                await refreshRuns(selectedRun?.runId, analysisId);
+                await refreshGate();
+              })();
+            }}
+          />
           <ResultDock run={selectedRun} compare={compareRun} />
           <RunHistory
             records={records}
