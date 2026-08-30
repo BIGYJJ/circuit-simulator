@@ -123,11 +123,12 @@ export async function parseAdapterResult(input: {
   const seen = new Set<string>();
   const byName = new Map<string, AdapterResult["vectors"][number]>();
   for (const vector of input.adapterResult.vectors) {
-    if (seen.has(vector.name)) return fail("RESULT_DUPLICATE_RAW", "adapter returned a duplicate raw vector");
-    seen.add(vector.name);
-    byName.set(vector.name, vector);
+    const name = vector.name.toLowerCase();
+    if (seen.has(name)) return fail("RESULT_DUPLICATE_RAW", "adapter returned a duplicate raw vector");
+    seen.add(name);
+    byName.set(name, vector);
   }
-  if (seen.size !== required.length || required.some(name => !seen.has(name))) {
+  if (seen.size !== required.length || required.some(name => !seen.has(name.toLowerCase()))) {
     return fail("RESULT_RAW_SET", "adapter raw vectors do not match the compiled requested set");
   }
   const analysis = input.run.analysis;
@@ -136,7 +137,7 @@ export async function parseAdapterResult(input: {
   if (analysis.kind === "dc-op") {
     axisValues = new Float64Array([0]);
   } else {
-    const rawAxis = byName.get(input.run.compiled.vectorPlan[0]?.axisName ?? "");
+    const rawAxis = byName.get((input.run.compiled.vectorPlan[0]?.axisName ?? "").toLowerCase());
     if (!rawAxis) return fail("RESULT_AXIS", "compiled axis is missing from the adapter result");
     axisValues = rawAxis.real.slice();
   }
@@ -156,7 +157,7 @@ export async function parseAdapterResult(input: {
   };
   const vectors: ResultVector[] = [];
   for (const entry of input.run.compiled.vectorPlan) {
-    const raw = byName.get(entry.sourceVectorName);
+    const raw = byName.get(entry.sourceVectorName.toLowerCase());
     if (!raw) return fail("RESULT_RAW_SET", "a planned source vector is missing");
     if (raw.real.length !== (analysis.kind === "dc-op" ? 1 : axisValues.length) && !reversed) {
       if (raw.real.length !== axisValues.length) return fail("RESULT_LENGTH", "raw vector length does not match the axis");

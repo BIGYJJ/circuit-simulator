@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 13 generation-safe workers landed
-- Completed: Task 1–13。
-- In progress: Task 14 DC 工作台切片。
+- Phase: Task 14 DC 工作台切片 landed
+- Completed: Task 1–14。
+- In progress: Task 15 四类分析与仪器。
 - Blocked: 无。
-- Next: Task 14 统一工作台运行真实 DC 工作点。
-- Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；PWA 与完整工作台仍未实现。
+- Next: Task 15 DC sweep / transient / AC / 仪器 / 比较。
+- Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；PWA 与完整工作台其余切片仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 14 ran traceable DC operating points in the workspace
+
+- Completed: 统一工作台 Run/History/Provenance/Diagnostics/Palette；`pnpm check` exit 0；Chromium `divider-run.spec.ts` 1/1（16.6s）。
+- Verified: 分压 Vout `6.000000 V`；改 R2 后标为历史；断地 `ERC_NO_GROUND` 且不增 Worker/记录；并联 R3 后 `4.5 V` 与三支路电流；断线/短路零新 Worker；来源网表哈希重算一致；损坏快照报告 `RUN_SNAPSHOT_MISMATCH`。
+- Deviation: 适配器 `runBatch` 必须复用资格套件的 `_main`/`ExitStatus` 路径并缓存 WASM；结果名按小写对齐 rawfile；可执行网表标题改为注释行。
+- Reason: 资格 Worker 已证明该调用约定；未处理时成功退出也会被当成失败。
+- Remaining: Task 15–23。
 
 ### 2026-08-31 — Task 13 ran generation-safe ngspice workers
 

@@ -41,7 +41,7 @@ export type ProjectCommand =
 
 const ELECTRICAL_PREFIXES = ["component/", "wire/", "model/", "analysis/", "probe/", "corner/"];
 
-function isElectrical(command: ProjectCommand) {
+export function isElectricalCommand(command: ProjectCommand) {
   return ELECTRICAL_PREFIXES.some(prefix => command.type.startsWith(prefix));
 }
 
@@ -200,7 +200,7 @@ export function applyProjectCommand(
   if (result === "ref") return fail("PROJECT_REFERENCE_EXISTS", "cannot remove a referenced object");
   if (result === "noop") return { ok: true, value: project, diagnostics: [] };
   result.revision = project.revision + 1;
-  if (isElectrical(command)) result.electricalRevision = project.electricalRevision + 1;
+  if (isElectricalCommand(command)) result.electricalRevision = project.electricalRevision + 1;
   result.updatedAt = changedAt;
   const parsed = parseCircuitProjectV2(result);
   if (!parsed.ok) return parsed;

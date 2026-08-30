@@ -20,7 +20,7 @@ import type { CompileRequest, CompileResult, CompiledModelFile, CompiledVectorRe
 import { parseAndValidateSpiceSource } from "./spice-source-parser";
 import { parseQualifiedVectorManifest, resolveQualifiedVector } from "./qualified-vectors.mjs";
 
-const TITLE = "FLUXLAB GENERATED NETLIST";
+const TITLE = "* FLUXLAB GENERATED NETLIST";
 const PROJECTION_ORDER: ResultProjection[] = ["scalar", "real", "imaginary", "magnitude", "phase", "db20"];
 const REFDES_RE = /^[A-Za-z][A-Za-z0-9_]{0,31}$/;
 const TOKEN_RE = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}$/;

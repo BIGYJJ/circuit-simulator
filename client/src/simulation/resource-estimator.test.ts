@@ -6,7 +6,7 @@ import { DEFAULT_RUNTIME_LIMITS, checkRunResourceLimits, estimateAxisPoints, est
 
 function compiled(partial: Partial<CompileResult> = {}): CompileResult {
   return {
-    netlist: "FLUXLAB GENERATED NETLIST\n.end\n",
+    netlist: "* FLUXLAB GENERATED NETLIST\n.end\n",
     netlistHash: "0".repeat(64),
     diagnostics: [],
     sourceMap: { lineToComponent: {}, componentToLines: {}, endpointToNode: {}, nodeToEndpoints: {} },

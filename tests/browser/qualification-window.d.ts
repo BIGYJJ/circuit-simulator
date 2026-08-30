@@ -35,4 +35,5 @@ interface Window {
   __fluxlabPatchedDelete?: () => void;
   __fluxlabHeldLock?: boolean;
   __fluxlabReleaseHeldLock?: () => void;
+  __fluxlabWorkerCreations?: number;
 }

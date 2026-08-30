@@ -89,7 +89,7 @@ describe("ngspice adapter", () => {
       vectorsSha256: PINNED_VECTORS_SHA256,
       fetchWasm: async () => wasm,
       createModule: async () => {
-        const next = createFakeModule(encodeRawfile([created.length <= 1 ? "v-a" : "v-b"], [[created.length]]));
+        const next = createFakeModule(encodeRawfile([created.length === 0 ? "v-a" : "v-b"], [[created.length]]));
         created.push(next);
         return next;
       },
@@ -103,23 +103,23 @@ describe("ngspice adapter", () => {
       expectedEngineBuildId: PINNED_ENGINE_BUILD_ID,
     });
     const runA = await adapter.runBatch({
-      netlistUtf8: new TextEncoder().encode("FLUXLAB GENERATED NETLIST\n.end\n"),
+      netlistUtf8: new TextEncoder().encode("* FLUXLAB GENERATED NETLIST\n.end\n"),
       modelFiles: [],
       requestedVectors: ["v(1)"],
       limits: DEFAULT_RUNTIME_LIMITS,
     });
     expect(runA.vectors[0]?.name).toBe("v-a");
-    expect(remainingRunFiles(created[1]!)).toEqual([]);
+    expect(remainingRunFiles(created[0]!)).toEqual([]);
 
     const runB = await adapter.runBatch({
-      netlistUtf8: new TextEncoder().encode("FLUXLAB GENERATED NETLIST\n.end\n"),
+      netlistUtf8: new TextEncoder().encode("* FLUXLAB GENERATED NETLIST\n.end\n"),
       modelFiles: [],
       requestedVectors: ["v(1)"],
       limits: DEFAULT_RUNTIME_LIMITS,
     });
     expect(runB.vectors[0]?.name).toBe("v-b");
     expect(runB.vectors.some(item => item.name === "v-a")).toBe(false);
-    expect(remainingRunFiles(created[2]!)).toEqual([]);
+    expect(remainingRunFiles(created[1]!)).toEqual([]);
   });
 
   it("writes one generated file when two model IDs share name, hash, and bytes", async () => {
@@ -148,7 +148,7 @@ describe("ngspice adapter", () => {
     const hash = parsed.value.sha256;
     const name = `model-${hash}.lib`;
     const result = await adapter.runBatch({
-      netlistUtf8: new TextEncoder().encode("FLUXLAB GENERATED NETLIST\n.end\n"),
+      netlistUtf8: new TextEncoder().encode("* FLUXLAB GENERATED NETLIST\n.end\n"),
       modelFiles: [
         { modelId: "one", sha256: hash, generatedName: name, source },
         { modelId: "two", sha256: hash, generatedName: name, source },

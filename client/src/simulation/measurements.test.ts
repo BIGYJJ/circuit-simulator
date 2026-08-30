@@ -31,7 +31,7 @@ function transientRunFixture(input: { time: number[]; volts: number[] }): Succes
       engineBuildId: "engine",
     },
     modelManifest: [],
-    inputBundle: { netlist: "FLUXLAB GENERATED NETLIST\n.end\n", models: [], sourceMap: { lineToComponent: {}, componentToLines: {}, endpointToNode: {}, nodeToEndpoints: {} } },
+    inputBundle: { netlist: "* FLUXLAB GENERATED NETLIST\n.end\n", models: [], sourceMap: { lineToComponent: {}, componentToLines: {}, endpointToNode: {}, nodeToEndpoints: {} } },
     startedAt: "2026-08-31T00:00:00.000Z",
     preflightDiagnostics: [],
     status: "success",

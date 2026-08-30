@@ -1,5 +1,13 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 14 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Controller + legacy fixture | Pass | vitest controller/circuit-solver/templates/reducer 通过 |
+| Divider workspace journey | Pass | Playwright Chromium `divider-run.spec.ts` 1 passed (16.6s) |
+
 ## Task 13 Changed Functionality
 
 | Check | Status | Fresh evidence |

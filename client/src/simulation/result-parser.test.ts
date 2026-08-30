@@ -174,6 +174,19 @@ describe("parseAdapterResult", () => {
     expect([...parsed.value.vectors[0]!.values]).toEqual([1, 2, 3]);
   });
 
+  it("matches rawfile lowercase names to compiled vector names", async () => {
+    const run = await dividerRun();
+    const parsed = await parseAdapterResult({
+      run,
+      adapterResult: adapterFixture(new Float64Array([6]), { name: "v(vout)" }),
+      engine: ENGINE,
+      startedAt: "2026-08-31T00:00:00.000Z",
+      finishedAt: "2026-08-31T00:00:01.000Z",
+    });
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) expect([...parsed.value.vectors[0]!.values]).toEqual([6]);
+  });
+
   it("emits RESOURCE_SNAPSHOT_TRANSFER with no partial snapshot one byte over the limit", async () => {
     const run = await dividerRun();
     const name = run.compiled.requestedRawVectors[0]!;

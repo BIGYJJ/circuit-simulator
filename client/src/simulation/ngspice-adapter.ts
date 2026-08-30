@@ -30,6 +30,7 @@ const MODEL_FILE_RE = /^model-[a-f0-9]{64}\.lib$/;
 type NgspiceModule = {
   wasmMemory?: { buffer: ArrayBuffer };
   HEAPU8?: Uint8Array;
+  HEAPU32?: Uint32Array;
   FS: {
     mkdir: (path: string) => void;
     writeFile: (path: string, data: string | Uint8Array) => void;
@@ -40,6 +41,11 @@ type NgspiceModule = {
     chdir?: (path: string) => void;
   };
   callMain?: (args: string[]) => number;
+  _main?: (argc: number, argv: number) => number;
+  stackSave?: () => number;
+  stackAlloc?: (bytes: number) => number;
+  stackRestore?: (pointer: number) => void;
+  stringToUTF8OnStack?: (value: string) => number;
 };
 
 export interface VerifiedModelFile {
@@ -137,6 +143,47 @@ function estimateHeader(names: string[]) {
   return estimator.fixedBytes + names.length * estimator.perVariableBytes + nameBytes * estimator.perVariableNameUtf8Byte + estimator.safetyBytes;
 }
 
+function exitStatusOf(error: unknown): number | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const record = error as { name?: string; status?: unknown };
+  if (record.name === "ExitStatus" || typeof record.status === "number") {
+    return Number(record.status ?? 1);
+  }
+  return undefined;
+}
+
+function invokeMain(module: NgspiceModule, args: string[]) {
+  if (module._main && module.stackSave && module.stackAlloc && module.stackRestore && module.stringToUTF8OnStack && module.HEAPU32) {
+    const argv = ["ngspice", ...args];
+    const stack = module.stackSave();
+    const argvPtr = module.stackAlloc((argv.length + 1) * 4);
+    argv.forEach((arg, index) => {
+      module.HEAPU32![(argvPtr >> 2) + index] = module.stringToUTF8OnStack!(arg);
+    });
+    module.HEAPU32[(argvPtr >> 2) + argv.length] = 0;
+    try {
+      return module._main(argv.length, argvPtr);
+    } catch (error) {
+      const status = exitStatusOf(error);
+      if (status !== undefined) return status;
+      throw error;
+    } finally {
+      try {
+        module.stackRestore(stack);
+      } catch {
+        /* exited */
+      }
+    }
+  }
+  try {
+    return module.callMain?.(args) ?? 0;
+  } catch (error) {
+    const status = exitStatusOf(error);
+    if (status !== undefined) return status;
+    throw error;
+  }
+}
+
 function cleanup(module: NgspiceModule, directory: string) {
   try {
     for (const name of module.FS.readdir(directory)) {
@@ -164,6 +211,7 @@ export interface NgspiceAdapterHooks {
 
 export function createNgspiceRuntimeAdapter(hooks: NgspiceAdapterHooks = {}): NgspiceRuntimeAdapter {
   let disposed = false;
+  let wasmBytes: Uint8Array | undefined;
   return {
     async initialize(input) {
       if (disposed) throw new AdapterRuntimeError(failure("ADAPTER_DISPOSED", "adapter was disposed"));
@@ -184,6 +232,7 @@ export function createNgspiceRuntimeAdapter(hooks: NgspiceAdapterHooks = {}): Ng
       const wasm = hooks.fetchWasm
         ? new Uint8Array(await hooks.fetchWasm(input.wasmUrl))
         : new Uint8Array(await (await fetch(wasmUrl)).arrayBuffer());
+      wasmBytes = wasm;
       const actualWasm = await sha256Hex(wasm);
       if (input.expectedWasmSha256 !== wasmSha || actualWasm !== wasmSha) {
         throw new AdapterRuntimeError(failure("ENGINE_HASH_MISMATCH", "wasm hash does not match the pin"));
@@ -191,8 +240,6 @@ export function createNgspiceRuntimeAdapter(hooks: NgspiceAdapterHooks = {}): Ng
       if (input.expectedVersion !== PINNED_VERSION || input.expectedEngineBuildId !== PINNED_ENGINE_BUILD_ID) {
         throw new AdapterRuntimeError(failure("ENGINE_BUILD_MISMATCH", "engine version or build id does not match"));
       }
-      const factory = hooks.createModule ?? createNgspiceModule;
-      await factory({ noInitialRun: true, noExitRuntime: true, wasmBinary: wasm });
       const metadata: EngineMetadata = {
         name: "ngspice",
         version: PINNED_VERSION,
@@ -240,7 +287,13 @@ export function createNgspiceRuntimeAdapter(hooks: NgspiceAdapterHooks = {}): Ng
       const factory = hooks.createModule ?? createNgspiceModule;
       const logs: string[] = [];
       let logBytes = 0;
-      const wasm = hooks.fetchWasm ? new Uint8Array(await hooks.fetchWasm(wasmUrl)) : new Uint8Array();
+      const wasm = hooks.fetchWasm
+        ? new Uint8Array(await hooks.fetchWasm(wasmUrl))
+        : wasmBytes
+          ? wasmBytes
+          : factory === createNgspiceModule
+            ? new Uint8Array(await (await fetch(wasmUrl)).arrayBuffer())
+            : new Uint8Array();
       const module = await factory({
         noInitialRun: true,
         wasmBinary: wasm,
@@ -265,7 +318,7 @@ export function createNgspiceRuntimeAdapter(hooks: NgspiceAdapterHooks = {}): Ng
         if (headerBound + input.netlistUtf8.byteLength > input.limits.maxVirtualFsBytes) {
           throw new AdapterRuntimeError(failure("RESOURCE_VIRTUAL_FS", "rawfile header bound exceeds the virtual FS limit"));
         }
-        const exit = module.callMain?.(["-b", "-r", `${directory}/out.raw`, `${directory}/circuit.cir`]) ?? 0;
+        const exit = invokeMain(module, ["-b", "-r", `${directory}/out.raw`, `${directory}/circuit.cir`]);
         if (exit !== 0) throw new AdapterRuntimeError(failure("ADAPTER_EXIT", `ngspice exit ${exit}`, [], true));
         const raw = module.FS.readFile(`${directory}/out.raw`);
         if (raw.byteLength > input.limits.maxRawResultBytes) {
