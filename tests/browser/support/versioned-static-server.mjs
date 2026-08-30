@@ -84,8 +84,10 @@ export async function startVersionedStaticServer(options = {}) {
     const serveFile = filePath => {
       if (!existsSync(filePath) || !statSync(filePath).isFile()) return false;
       const type = MIME[extname(filePath)] ?? "application/octet-stream";
+      const size = statSync(filePath).size;
       response.statusCode = 200;
       response.setHeader("Content-Type", type);
+      response.setHeader("Content-Length", String(size));
       response.setHeader("Cache-Control", options.allowImmutableCache ? cacheControl(pathname === "/" ? "/index.html" : pathname) : "no-store");
       createReadStream(filePath).pipe(response);
       return true;

@@ -1,5 +1,15 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 21 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Host contract + release mismatch | Pass | `node --test tests/release/static-host.test.mjs` 2/2 |
+| Local root verify | Pass | `node scripts/verify-static-host.mjs --root dist/public` 10 assets ok |
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Local-rc smoke | Pass | Playwright Chromium `release-smoke.spec.ts` 1 passed (15.1s) |
+| Production host | Pending | `FLUXLAB_RELEASE_BASE_URL` 未提供；权威核对留到 Task 23 最终 RC |
+
 ## Task 20 Changed Functionality
 
 | Check | Status | Fresh evidence |

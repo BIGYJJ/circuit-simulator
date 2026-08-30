@@ -133,6 +133,7 @@ export default defineConfig({
   build: {
     outDir,
     emptyOutDir: true,
+    manifest: true,
     rollupOptions: {
       input: {
         main: path.resolve(root, "client", "index.html"),

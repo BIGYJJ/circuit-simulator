@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 20 PWA landed
-- Completed: Task 1–20。
-- In progress: Task 21 静态主机契约。
-- Blocked: 无。
-- Next: Task 21 定义并验证真实静态主机。
+- Phase: Task 21 本地主机契约 landed
+- Completed: Task 1–21。
+- In progress: Task 22 响应式/无障碍/体积门禁。
+- Blocked: 生产主机与人体学习门禁待 Task 23 运维/参与者证据。
+- Next: Task 22 满足响应式、键盘、无障碍、性能与体积门禁。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；生产主机与人体学习门禁仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 21 defined and verified static production hosting
+
+- Completed: `DEPLOYMENT.md`、严格静态主机契约、`verify-static-host.mjs`、local-rc 与 Playwright smoke。`node --test tests/release/static-host.test.mjs` 2/2；`node scripts/verify-static-host.mjs --root dist/public` 10 assets ok；`pnpm check` exit 0；Chromium `release-smoke.spec.ts` 1 passed (15.1s)。
+- Verified: `Accept: text/html` 导航回写 `index.html`；缺失 `.js`/`.wasm` 真实 404 且不回写 HTML；hashed 资产 `immutable`，`index.html`/`sw.js`/`manifest.webmanifest` 为 `no-cache`；官方/旧路径打开并刷新后新建分压跑出 `6.000000 V`。
+- Deviation: 校验器在读完响应头后取消 body，避免把 7 MiB Worker/WASM 拉进 Node 连接池；生产主机名、app/engine build ID 与远端哈希保持 Pending。
+- Reason: 未消费的大文件响应会占满 undici 连接，导致 `--root` 假死；Task 22–23 仍会改产物，不能把本机契约写成生产已验证。
+- Remaining: Task 22–23。
 
 ### 2026-08-31 — Task 20 installed and updated the offline simulator atomically
 

@@ -17,7 +17,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "release:hygiene": "node scripts/verify-release-hygiene.mjs",
-    "pwa:fixtures": "node scripts/build-pwa-fixtures.mjs"
+    "pwa:fixtures": "node scripts/build-pwa-fixtures.mjs",
+    "verify:host": "node scripts/verify-static-host.mjs --root dist/public"
   },
   "dependencies": {
     "clsx": "^2.1.1",
