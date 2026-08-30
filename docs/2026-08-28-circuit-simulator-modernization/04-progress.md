@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 3 project contracts defined
-- Completed: 前置确认 B；基线 `a86e994`；Task 1 `00224ba`；Task 2 `0416bfc`；Task 3 定义 CircuitProjectV2 / Diagnostic / DomainResult / canonical SHA-256。
-- In progress: 准备提交 Task 3，随后进入 Task 4。
+- Phase: Task 4 SPICE allowlist parser landed
+- Completed: Task 1–3；Task 4 单一续行安全 SPICE 解析器与模型复验。
+- In progress: 准备提交 Task 4，随后进入 Task 5。
 - Blocked: 无。
-- Next: Task 4 统一 SPICE allowlist 解析器。
+- Next: Task 5 诚实 v2 模板与 v1 迁移。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；PWA 与产品工作台仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 4 enforced one SPICE source allowlist
+
+- Completed: `parseAndValidateSpiceSource` / `validateProjectModels`；续行 `.shell` 在物理行 1–2 失败；子电路针脚与 PARAMS 顺序保留；禁止 `.control`、垃圾后缀、逗号数值和大小写重复 `.model`。`pnpm exec vitest run client/src/simulation/spice-source-parser.test.ts` 5/5；`pnpm check` exit 0；`pnpm test` 40/40。
+- Verified: allowed-circuit/model 夹具通过；bypass 与 forbidden-control 夹具失败。
+- Deviation: 解析器覆盖计划要求的族/分析/数值后缀；未把全部边界夹具写成独立文件，相关规则在单元测试与分类器中执行。
+- Reason: 先闭合信任边界与指定失败用例，避免在 Task 4 再扩第二套 tokenizer。
+- Remaining: Task 5–23。Code-level checks passed; product acceptance remains unverified.
 
 ### 2026-08-31 — Task 3 defined versioned project contracts
 

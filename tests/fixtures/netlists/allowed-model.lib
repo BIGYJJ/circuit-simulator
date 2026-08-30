@@ -1,0 +1,5 @@
+.model DLED D(IS=1e-14 N=1.8 RS=0.5)
+.subckt FILTER IN OUT PARAMS: R=1k C=1u
+R1 IN OUT {R}
+C1 OUT 0 {C}
+.ends FILTER
