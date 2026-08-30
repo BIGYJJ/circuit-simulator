@@ -1,0 +1,9 @@
+{
+  "dividerVout": 6,
+  "rcAt1Tau": 3.160602794,
+  "rcAt5Tau": 4.966310266,
+  "lowpassCutoffMinHz": 157.56,
+  "lowpassCutoffMaxHz": 160.75,
+  "subcircuitVout": 2.5,
+  "dividerR1PowerW": 0.009
+}

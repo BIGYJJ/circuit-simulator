@@ -1,0 +1,6 @@
+* subcircuit divider
+V1 1 0 DC 5
+X1 1 2 half
+.save v(2)
+.op
+.end

@@ -1,0 +1,7 @@
+* diode sweep
+V1 1 0 DC 0
+D1 1 0 DMOD
+.model DMOD D
+.save i(v1) @d1[p]
+.dc V1 0.4 0.8 0.01
+.end

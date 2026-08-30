@@ -1,0 +1,7 @@
+* RC charge
+V1 1 0 PULSE(0 5 0 1n 1n 10 20)
+R1 1 2 10k
+C1 2 0 100u
+.save v(2) @r1[i] @c1[i] @r1[p]
+.tran 10m 5
+.end

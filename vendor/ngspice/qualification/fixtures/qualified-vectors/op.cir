@@ -1,0 +1,16 @@
+* qualified vector op
+V1 1 0 DC 9
+I1 0 7 DC 1m
+R1 1 2 1k
+C1 2 0 100u
+L1 2 4 1m
+R2 4 0 2k
+D1 7 0 DMOD
+S1 5 0 6 0 SMOD
+Vctrl 6 0 DC 2
+R3 1 5 1k
+.model DMOD D
+.model SMOD SW VT=1 VH=0.1 RON=1 ROFF=1e6
+.save @v1[i] @r1[i] @c1[i] @l1[i] @s1[i] @r1[p] @d1[p]
+.op
+.end

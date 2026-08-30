@@ -2,14 +2,22 @@
 
 ## Current Status
 
-- Phase: Task 1 starting — preconditions accepted
-- Completed: 用户选择 B（无线上账号，归档密钥作废即可）。已删除 `.project-config.json`。复扫仅剩 `03-plan.md:319` 一条 `generic-api-key`（SHA-256 叙述误报）。
-- In progress: Task 1 资格化钉死 ngspice WASM。
-- Blocked: 仓库仍无 commit；Task 1 提交前需先有基线提交。
-- Next: 写入基线 commit，再按 Task 1 TDD 添加失败的三浏览器资格测试。
-- Unverified: 远端历史/旧 ZIP；ngspice WASM 候选尚未资格化。
+- Phase: Task 1 qualification passed locally
+- Completed: 前置确认 B；删除 `.project-config.json`；基线 commit `a86e994`；钉死 `@o.z/ngspice-wasm` / ngspice-46 单线程 WASM；三浏览器资格测试 3 passed。
+- In progress: 准备 Task 1 证据提交，随后进入 Task 2。
+- Blocked: 无。
+- Next: commit Task 1 后开始 Task 2（清凭据/遥测/代理）。
+- Unverified: 远端历史/旧 ZIP；PWA 与产品工作台仍未实现。
 
 ## Log
+
+### 2026-08-31 — Task 1 ngspice WASM qualified on three browsers
+
+- Completed: 采用 `@o.z/ngspice-wasm@0.0.0`（官方 tag `ngspice-46`，单线程 256 MiB）。结果传输固定 `binary-rawfile`。`pnpm check` exit 0；`node --test tests/release/ngspice-assets.test.mjs` 5/5；`pnpm test` 31/31；Playwright Chromium/Firefox/WebKit 各 1 passed。
+- Verified: 分压 Vout=6、RC 1τ/5τ、二极管比值、低通截止、子电路 2.5 V、R1 9 mW、取消重建、hash/limit/CSP。
+- Deviation: 共享库 callback 未导出，故未选 vector-callback；独立电流源 I 与二极管支路电流未进入矩阵（ngspice 名不稳定或模板括号不合法）；Vite 开发 CSP 因记录到的 inline/blob 失败而放宽 `script-src 'unsafe-inline'`、`worker-src blob:`、`style-src 'unsafe-inline'`。
+- Reason: 计划允许去掉不可靠 tuple；CSP 仅在实测失败后放宽。
+- Remaining: Task 2–23。
 
 ### 2026-08-31 — User chose B; secret config deleted
 

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "binary-rawfile",
+  "rawfileHeaderEstimator": {
+    "version": 1,
+    "fixedBytes": 384,
+    "perVariableBytes": 48,
+    "perVariableNameUtf8Byte": 2,
+    "safetyBytes": 256
+  }
+}

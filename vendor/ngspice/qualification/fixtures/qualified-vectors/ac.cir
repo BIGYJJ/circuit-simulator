@@ -1,0 +1,9 @@
+* qualified vector ac
+V1 1 0 DC 0 AC 1
+R1 1 2 1k
+C1 2 0 1u
+L1 2 3 1m
+R2 3 0 1k
+.save v(2) @r1[i] @c1[i] @l1[i]
+.ac dec 5 10 1e4
+.end

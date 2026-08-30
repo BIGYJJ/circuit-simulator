@@ -1,0 +1,7 @@
+* 9 V divider
+V1 1 0 DC 9
+R1 1 2 1k
+R2 2 0 2k
+.save v(2) i(v1) @r1[p] @r1[i]
+.op
+.end

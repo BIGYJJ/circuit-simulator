@@ -1,0 +1,4 @@
+.subckt half in out
+R1 in out 1k
+R2 out 0 1k
+.ends half

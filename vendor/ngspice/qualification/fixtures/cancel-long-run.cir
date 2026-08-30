@@ -1,0 +1,7 @@
+* long transient used only to prove Worker terminate/rebuild
+V1 1 0 DC 5
+R1 1 2 1k
+C1 2 0 1
+.save v(2)
+.tran 1u 2
+.end

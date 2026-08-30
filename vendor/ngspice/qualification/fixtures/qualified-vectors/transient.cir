@@ -1,0 +1,9 @@
+* qualified vector transient
+V1 1 0 DC 5
+R1 1 2 10k
+C1 2 0 100u
+L1 2 3 1m
+R2 3 0 1k
+.save v(2) @v1[i] @r1[i] @c1[i] @l1[i] @r1[p]
+.tran 10m 0.2
+.end

@@ -5,6 +5,28 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import { readEngineFingerprint } from "./scripts/verify-ngspice-assets.mjs";
+
+readEngineFingerprint();
+
+const QUALIFICATION_CSP =
+  "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'";
+
+function vitePluginQualificationCsp(): Plugin {
+  const apply = (server: ViteDevServer) => {
+    server.middlewares.use((req, res, next) => {
+      if (req.url?.split("?")[0] === "/qualification.html") {
+        res.setHeader("Content-Security-Policy", QUALIFICATION_CSP);
+      }
+      next();
+    });
+  };
+  return {
+    name: "qualification-csp",
+    configureServer: apply,
+    configurePreview: apply,
+  };
+}
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -203,7 +225,7 @@ function vitePluginStorageProxy(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy()];
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy(), vitePluginQualificationCsp()];
 
 export default defineConfig({
   plugins,
@@ -216,14 +238,25 @@ export default defineConfig({
   },
   envDir: path.resolve(import.meta.dirname),
   root: path.resolve(import.meta.dirname, "client"),
+  worker: {
+    format: "es",
+  },
+  assetsInclude: ["**/*.wasm"],
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: path.resolve(import.meta.dirname, "client", "index.html"),
+        qualification: path.resolve(import.meta.dirname, "client", "qualification.html"),
+      },
+    },
   },
   server: {
     port: 3000,
     strictPort: false, // Will find next available port if 3000 is busy
     host: true,
+    hmr: process.env.FLUXLAB_PLAYWRIGHT === "1" ? false : undefined,
     allowedHosts: [
       ".manuspre.computer",
       ".manus.computer",
@@ -235,6 +268,7 @@ export default defineConfig({
     ],
     fs: {
       strict: true,
+      allow: [path.resolve(import.meta.dirname)],
       deny: ["**/.*"],
     },
   },

@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "capabilities": [
+    {
+      "quantity": "branch-current",
+      "family": "C",
+      "analysis": "ac",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "branch-current",
+      "family": "C",
+      "analysis": "dc-op",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "branch-current",
+      "family": "C",
+      "analysis": "transient",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "branch-current",
+      "family": "L",
+      "analysis": "ac",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "branch-current",
+      "family": "L",
+      "analysis": "dc-op",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "branch-current",
+      "family": "L",
+      "analysis": "transient",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "branch-current",
+      "family": "R",
+      "analysis": "ac",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "branch-current",
+      "family": "R",
+      "analysis": "dc-op",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "branch-current",
+      "family": "R",
+      "analysis": "dc-sweep",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "branch-current",
+      "family": "R",
+      "analysis": "transient",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "branch-current",
+      "family": "S",
+      "analysis": "dc-op",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "branch-current",
+      "family": "V",
+      "analysis": "dc-op",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "branch-current",
+      "family": "V",
+      "analysis": "dc-sweep",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "branch-current",
+      "family": "V",
+      "analysis": "transient",
+      "rawNameTemplate": "@{ref}[i]",
+      "positiveDirection": "p-to-n"
+    },
+    {
+      "quantity": "device-power",
+      "family": "D",
+      "analysis": "dc-op",
+      "rawNameTemplate": "@{ref}[p]",
+      "sign": "absorbed"
+    },
+    {
+      "quantity": "device-power",
+      "family": "D",
+      "analysis": "dc-sweep",
+      "rawNameTemplate": "@{ref}[p]",
+      "sign": "absorbed"
+    },
+    {
+      "quantity": "device-power",
+      "family": "R",
+      "analysis": "dc-op",
+      "rawNameTemplate": "@{ref}[p]",
+      "sign": "absorbed"
+    },
+    {
+      "quantity": "device-power",
+      "family": "R",
+      "analysis": "dc-sweep",
+      "rawNameTemplate": "@{ref}[p]",
+      "sign": "absorbed"
+    },
+    {
+      "quantity": "device-power",
+      "family": "R",
+      "analysis": "transient",
+      "rawNameTemplate": "@{ref}[p]",
+      "sign": "absorbed"
+    }
+  ]
+}

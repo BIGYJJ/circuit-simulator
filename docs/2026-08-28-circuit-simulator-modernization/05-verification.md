@@ -2,10 +2,22 @@
 
 ## Environment
 
-- Build/version: 源码归档声称 `9f17dcf`，但目录没有 `.git`，提交无法本地核验。
-- Runtime: Windows, Node.js 24.15.0, pnpm 10.4.1 isolated audit copy.
-- Data: 仓库默认分压、RC、LED 项目和实际浏览器页面。
-- Planning preflight: fresh `git status` 仍报告不是 Git 仓库；`Get-Command gitleaks` 报告未安装。
+- Branch: `cursor_citcuit` after baseline `a86e994`
+- Runtime: Windows, pnpm 10.4.1, Playwright 1.55.0
+- Browsers (PLAYWRIGHT_BROWSERS_PATH=`D:\tools\playwright-browsers`): Chromium 140.0.7339.16 (build 1187), Firefox 141.0 (build 1490), WebKit 26.0 (build 2203)
+- Engine: ngspice-46 / `engineBuildId=ngspice-46-emscripten-singlethread-256m-20260527`
+- `ngspice.mjs` SHA-256: `b285fc2d5b19135ed9b775ab41a6ceeb9bb75482bc6b3a44956cc6c959406b93`
+- `ngspice.wasm` SHA-256: `710da3c95ca4c86ffd87db6189e80b7d56c630801625db3129e203726701e59c`
+- Result transport: `binary-rawfile`
+
+## Task 1 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Asset verifier | Pass | `node --test tests/release/ngspice-assets.test.mjs` 5/5 |
+| Three-browser qualification | Pass | `pnpm exec playwright test tests/browser/ngspice-qualification.spec.ts` — 3 passed (10.5s) |
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Legacy unit tests | Pass | `pnpm test` 31/31 |
 
 ## Changed Functionality
 
