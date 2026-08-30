@@ -60,6 +60,17 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible { outli
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 [data-testid="legacy-notice"], [data-testid="legacy-need-project"] { margin: 8px 0; color: #cad7ca; }
 [data-testid="workspace-panel-analysis"][data-active="true"], [data-testid="workspace-panel-verification"][data-active="true"] { outline: 2px solid #c7f43d; }
+.offline-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 8px 18px;
+  border-bottom: 1px solid rgba(235, 244, 224, .11);
+  background: #101211;
+  color: #cad7ca;
+  font-size: 13px;
+}
 .library-page, .settings-page, .workspace-error {
   min-height: 100vh;
   overflow: auto;

@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 19 退役旧求解器 landed
-- Completed: Task 1–19。
-- In progress: Task 20 PWA。
+- Phase: Task 20 PWA landed
+- Completed: Task 1–20。
+- In progress: Task 21 静态主机契约。
 - Blocked: 无。
-- Next: Task 20 原子离线安装与 V1→V2 更新。
-- Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；PWA 与完整工作台其余切片仍未实现。
+- Next: Task 21 定义并验证真实静态主机。
+- Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；生产主机与人体学习门禁仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 20 installed and updated the offline simulator atomically
+
+- Completed: `vite-plugin-pwa` generateSW、手动注册、V1/V2 fixture 与 versioned static server。`node --test tests/release/build-identity-mode.test.mjs` 3/3；`pnpm check`；Chromium `offline-update.spec.ts` 2 passed (6.3s)。
+- Verified: 首次安装后断网可重开并跑 RC；两标签保持 V1 时 V2 只 waiting；关尽标签后离线重开为完整 V2；损坏 V2 WASM 保留 V1；Cache Storage 不含项目/运行证据。
+- Deviation: 测试主机对 fixture 默认 `Cache-Control: no-store`，避免同名 WASM 被 HTTP 缓存绕过 404。生产不可变缓存仍由 Task 21 主机契约覆盖。
+- Reason: V1/V2 共享同一 content-hash WASM 文件名，浏览器磁盘缓存会让“损坏 V2”假成功。
+- Remaining: Task 21–23。
 
 ### 2026-08-31 — Task 19 retired legacy pages and calculation backends
 

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { lstatSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 
 const EXTRA_FILES = ["package.json", "pnpm-lock.yaml", "vite.config.ts", "tsconfig.json", "tsconfig.node.json"];
 
@@ -32,17 +32,35 @@ export function isReleasePredicate(identity) {
   return Boolean(identity && identity.nonReleaseBuild === false && typeof identity.appBuildId === "string" && identity.appBuildId.startsWith("git-"));
 }
 
-export function resolveBuildIdentity(root, env = process.env) {
+export function fixtureOutputDir(root, appBuildId) {
+  return resolve(root, "tests", ".artifacts", appBuildId);
+}
+
+export function resolveBuildIdentity(root, env = process.env, options = {}) {
   const purpose = env.BUILD_PURPOSE ?? "verification";
   if (purpose !== "verification" && purpose !== "pwa-fixture" && purpose !== "release") {
     fail("BUILD_PURPOSE_UNKNOWN", `unknown BUILD_PURPOSE: ${purpose}`);
+  }
+  if (purpose !== "pwa-fixture" && (env.APP_BUILD_ID === "pwa-v1" || env.APP_BUILD_ID === "pwa-v2")) {
+    fail("BUILD_PURPOSE_FIXTURE", "fixture IDs are invalid outside pwa-fixture");
   }
   if (purpose === "pwa-fixture") {
     const appBuildId = env.APP_BUILD_ID;
     if (appBuildId !== "pwa-v1" && appBuildId !== "pwa-v2") {
       fail("BUILD_PURPOSE_FIXTURE", "pwa-fixture accepts only pwa-v1 or pwa-v2");
     }
-    return { purpose, appBuildId, nonReleaseBuild: true, nonReleaseFixture: true };
+    const identity = { purpose, appBuildId, nonReleaseBuild: true, nonReleaseFixture: true };
+    if (isReleasePredicate(identity)) fail("BUILD_PURPOSE_FIXTURE", "fixture identity must not be a release");
+    if (options.outDir) {
+      const resolved = resolve(options.outDir);
+      if (resolved === resolve(root, "dist", "public")) {
+        fail("BUILD_PURPOSE_FIXTURE", "fixture must not write dist/public");
+      }
+      if (resolved !== fixtureOutputDir(root, appBuildId)) {
+        fail("BUILD_PURPOSE_FIXTURE", "fixture output must be tests/.artifacts/pwa-v1|pwa-v2");
+      }
+    }
+    return identity;
   }
   if (purpose === "release") {
     fail("BUILD_PURPOSE_RELEASE", "release identity is reserved for a clean Task 23 commit");

@@ -16,10 +16,12 @@ export default defineConfig({
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
-  webServer: {
-    command: "corepack pnpm build && corepack pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort",
-    url: "http://127.0.0.1:4173",
-    reuseExistingServer: false,
-    timeout: 180_000,
-  },
+  webServer: process.env.FLUXLAB_SKIP_WEBSERVER
+    ? undefined
+    : {
+        command: "corepack pnpm build && corepack pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort",
+        url: "http://127.0.0.1:4173",
+        reuseExistingServer: false,
+        timeout: 180_000,
+      },
 });

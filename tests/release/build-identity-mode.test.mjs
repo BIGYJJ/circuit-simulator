@@ -53,12 +53,30 @@ test("unknown purpose and symlink fail closed", async () => {
 });
 
 test("pwa fixture ids are non-release and unknown fixture ids fail", () => {
-  const identity = resolveBuildIdentity(process.cwd(), { BUILD_PURPOSE: "pwa-fixture", APP_BUILD_ID: "pwa-v1" });
+  const root = process.cwd();
+  const identity = resolveBuildIdentity(root, { BUILD_PURPOSE: "pwa-fixture", APP_BUILD_ID: "pwa-v1" });
   assert.equal(identity.appBuildId, "pwa-v1");
   assert.equal(identity.nonReleaseBuild, true);
   assert.equal(identity.nonReleaseFixture, true);
   assert.equal(isReleasePredicate(identity), false);
-  assert.throws(() => resolveBuildIdentity(process.cwd(), { BUILD_PURPOSE: "pwa-fixture", APP_BUILD_ID: "pwa-v3" }), {
+  assert.throws(() => resolveBuildIdentity(root, { BUILD_PURPOSE: "pwa-fixture", APP_BUILD_ID: "pwa-v3" }), {
     code: "BUILD_PURPOSE_FIXTURE",
   });
+  assert.throws(() => resolveBuildIdentity(root, { BUILD_PURPOSE: "pwa-fixture" }), { code: "BUILD_PURPOSE_FIXTURE" });
+  assert.throws(
+    () => resolveBuildIdentity(root, { BUILD_PURPOSE: "verification", APP_BUILD_ID: "pwa-v1" }),
+    { code: "BUILD_PURPOSE_FIXTURE" }
+  );
+  assert.throws(
+    () => resolveBuildIdentity(root, { BUILD_PURPOSE: "pwa-fixture", APP_BUILD_ID: "pwa-v1" }, { outDir: join(root, "dist", "public") }),
+    { code: "BUILD_PURPOSE_FIXTURE" }
+  );
+  assert.throws(
+    () => resolveBuildIdentity(root, { BUILD_PURPOSE: "pwa-fixture", APP_BUILD_ID: "pwa-v1" }, { outDir: join(root, "tmp", "pwa-v1") }),
+    { code: "BUILD_PURPOSE_FIXTURE" }
+  );
+  const okDir = resolveBuildIdentity(root, { BUILD_PURPOSE: "pwa-fixture", APP_BUILD_ID: "pwa-v2" }, {
+    outDir: join(root, "tests", ".artifacts", "pwa-v2"),
+  });
+  assert.equal(okDir.appBuildId, "pwa-v2");
 });

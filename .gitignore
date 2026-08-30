@@ -112,3 +112,4 @@ temp/
 
 .project-config.json
 .serena/
+/tests/.artifacts/

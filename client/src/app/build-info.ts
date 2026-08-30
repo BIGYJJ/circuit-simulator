@@ -1,8 +1,12 @@
 declare const __FLUXLAB_APP_BUILD_ID__: string;
 declare const __FLUXLAB_NON_RELEASE_BUILD__: boolean;
+declare const __FLUXLAB_NON_RELEASE_FIXTURE__: boolean;
+declare const __FLUXLAB_ENGINE_BUILD_ID__: string;
 
 export const APP_BUILD_ID = typeof __FLUXLAB_APP_BUILD_ID__ === "string" ? __FLUXLAB_APP_BUILD_ID__ : "verify-dev";
 export const NON_RELEASE_BUILD = typeof __FLUXLAB_NON_RELEASE_BUILD__ === "boolean" ? __FLUXLAB_NON_RELEASE_BUILD__ : true;
+export const NON_RELEASE_FIXTURE = typeof __FLUXLAB_NON_RELEASE_FIXTURE__ === "boolean" ? __FLUXLAB_NON_RELEASE_FIXTURE__ : false;
+export const ENGINE_BUILD_ID = typeof __FLUXLAB_ENGINE_BUILD_ID__ === "string" ? __FLUXLAB_ENGINE_BUILD_ID__ : "";
 
 export function createProductSimulatorWorker() {
   if (typeof window !== "undefined") {
@@ -10,4 +14,10 @@ export function createProductSimulatorWorker() {
     current.__fluxlabWorkerCreations = (current.__fluxlabWorkerCreations ?? 0) + 1;
   }
   return new Worker(new URL("../simulation/simulator.worker.ts", import.meta.url), { type: "module" });
+}
+
+if (typeof window !== "undefined") {
+  const host = window as Window & { __fluxlabAppBuildId?: string; __fluxlabEngineBuildId?: string };
+  host.__fluxlabAppBuildId = APP_BUILD_ID;
+  host.__fluxlabEngineBuildId = ENGINE_BUILD_ID;
 }

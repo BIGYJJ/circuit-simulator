@@ -1,5 +1,14 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 20 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Identity + fixture IDs | Pass | `node --test tests/release/build-identity-mode.test.mjs` 3/3 |
+| Typecheck | Pass | `pnpm check` exit 0 |
+| PWA fixtures | Pass | `node scripts/build-pwa-fixtures.mjs`；`git status --short -- tests/.artifacts` 空 |
+| Offline / atomic update | Pass | Playwright Chromium `offline-update.spec.ts` 2 passed (6.3s) |
+
 ## Task 19 Changed Functionality
 
 | Check | Status | Fresh evidence |
