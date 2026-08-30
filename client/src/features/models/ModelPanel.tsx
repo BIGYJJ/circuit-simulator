@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CircuitProjectV2, Diagnostic, ModelDefinition, SpiceDeviceFamily } from "../../domain/project/project-v2";
 import { parseAndValidateSpiceSource } from "../../simulation/spice-source-parser";
 import type { ProjectCommand } from "../editor/project-reducer";
@@ -11,10 +11,18 @@ interface ModelPanelProps {
 const MAX_MODEL_BYTES = 256 * 1024;
 
 export default function ModelPanel({ project, onCommand }: ModelPanelProps) {
-  const [text, setText] = useState("");
   const [preview, setPreview] = useState<string>("");
   const [licenseNote, setLicenseNote] = useState("");
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
+  const sourceRef = useRef<HTMLTextAreaElement>(null);
+
+  function currentSource() {
+    return sourceRef.current?.value ?? "";
+  }
+
+  function setSource(value: string) {
+    if (sourceRef.current) sourceRef.current.value = value;
+  }
 
   async function previewSource(source: string) {
     if (new TextEncoder().encode(source).byteLength > MAX_MODEL_BYTES) {
@@ -57,7 +65,8 @@ export default function ModelPanel({ project, onCommand }: ModelPanelProps) {
   }
 
   async function adopt() {
-    const parsed = await parseAndValidateSpiceSource(text, "project-model", "opaque-model");
+    const source = currentSource();
+    const parsed = await parseAndValidateSpiceSource(source, "project-model", "opaque-model");
     if (!parsed.ok || parsed.diagnostics.some(item => item.blocksRun)) {
       setDiagnostics(parsed.diagnostics);
       setPreview("");
@@ -107,12 +116,12 @@ export default function ModelPanel({ project, onCommand }: ModelPanelProps) {
   return (
     <section className="workspace-models" aria-label="模型">
       <h2>模型</h2>
-      <textarea value={text} onChange={event => setText(event.target.value)} aria-label="模型源" rows={4} />
+      <textarea ref={sourceRef} defaultValue="" aria-label="模型源" rows={4} />
       <label>
         许可说明
         <input value={licenseNote} onChange={event => setLicenseNote(event.target.value)} />
       </label>
-      <button type="button" onClick={() => void previewSource(text)}>
+      <button type="button" onClick={() => void previewSource(currentSource())}>
         预览模型
       </button>
       <button type="button" onClick={() => void adopt()}>
@@ -129,7 +138,7 @@ export default function ModelPanel({ project, onCommand }: ModelPanelProps) {
             return;
           }
           void file.text().then(value => {
-            setText(value);
+            setSource(value);
             void previewSource(value);
           });
         }}
