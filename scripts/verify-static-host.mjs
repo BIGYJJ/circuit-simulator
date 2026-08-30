@@ -147,7 +147,7 @@ export async function verifyStaticHost(baseUrl, expectedRelease) {
   return report;
 }
 
-export async function verifyLocalRoot(distDir) {
+export async function verifyLocalRoot(distDir, expectedRelease) {
   const resolvedDist = resolve(distDir);
   const assets = discoverAssets(resolvedDist);
   const server = await startVersionedStaticServer({
@@ -156,7 +156,7 @@ export async function verifyLocalRoot(distDir) {
     allowImmutableCache: true,
   });
   try {
-    const report = await verifyStaticHost(server.url);
+    const report = await verifyStaticHost(server.url, expectedRelease);
     for (const asset of assets) {
       const response = await fetchNoStore(new URL(asset, server.url).href);
       if (response.status !== 200) fail("HOST_ASSET_MISSING", `${asset} -> ${response.status}`);
@@ -188,7 +188,8 @@ if (isMain) {
   try {
     if (rootFlag >= 0) {
       const distDir = resolve(args[rootFlag + 1] ?? "dist/public");
-      const report = await verifyLocalRoot(distDir);
+      const expected = manifestFlag >= 0 ? resolve(args[manifestFlag + 1]) : undefined;
+      const report = await verifyLocalRoot(distDir, expected);
       process.stdout.write(`${JSON.stringify({ ok: true, assets: report.assets }, null, 2)}\n`);
     } else {
       const base = args.find(item => !item.startsWith("--"));

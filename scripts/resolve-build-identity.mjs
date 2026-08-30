@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
@@ -63,7 +64,19 @@ export function resolveBuildIdentity(root, env = process.env, options = {}) {
     return identity;
   }
   if (purpose === "release") {
-    fail("BUILD_PURPOSE_RELEASE", "release identity is reserved for a clean Task 23 commit");
+    const source = String(env.RELEASE_SOURCE_COMMIT ?? "").toLowerCase();
+    if (!/^[0-9a-f]{40}$/.test(source)) fail("BUILD_PURPOSE_RELEASE", "RELEASE_SOURCE_COMMIT must be 40 lowercase hex");
+    const appBuildId = env.APP_BUILD_ID;
+    if (appBuildId !== `git-${source}`) fail("BUILD_PURPOSE_RELEASE", "APP_BUILD_ID must be git-<releaseSourceCommit>");
+    const git = options.git ?? {
+      head: execSync("git rev-parse HEAD", { cwd: root, encoding: "utf8" }).trim().toLowerCase(),
+      porcelain: execSync("git status --porcelain=v1 --untracked-files=all", { cwd: root, encoding: "utf8" }),
+    };
+    if (git.head !== source) fail("BUILD_PURPOSE_RELEASE", "HEAD must equal RELEASE_SOURCE_COMMIT");
+    if (String(git.porcelain ?? "").trim()) fail("BUILD_PURPOSE_RELEASE", "release requires a clean worktree");
+    const identity = { purpose: "release", appBuildId, releaseSourceCommit: source, nonReleaseBuild: false };
+    if (!isReleasePredicate(identity)) fail("BUILD_PURPOSE_RELEASE", "release identity is invalid");
+    return identity;
   }
   const files = [];
   walkFiles(root, join(root, "client"), files);

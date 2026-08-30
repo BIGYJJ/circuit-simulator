@@ -51,9 +51,6 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^5.0.4
         version: 5.0.4(vite@7.1.9(@types/node@24.13.3)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.51.2)(tsx@4.20.6))
-      fake-indexeddb:
-        specifier: 6.0.0
-        version: 6.0.0
       prettier:
         specifier: ^3.6.2
         version: 3.6.2
@@ -1712,10 +1709,6 @@ packages:
     resolution: {integrity: sha512-JhFGDVJ7tmDJItKhYgJCGLOWjuK9vPxiXoUFLwLDc99NlmklilbiQJwoctZtt13+xMw91MCk/REan6MWHqDjyA==}
     engines: {node: '>=12.0.0'}
 
-  fake-indexeddb@6.0.0:
-    resolution: {integrity: sha512-YEboHE5VfopUclOck7LncgIqskAqnv4q0EWbYCaxKKjAvO93c+TJIaBuGy8CBFdbg9nKdpN3AuPRwVBJ4k7NrQ==}
-    engines: {node: '>=18'}
-
   fast-deep-equal@3.1.3:
     resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
 
@@ -2801,7 +2794,7 @@ snapshots:
     dependencies:
       '@babel/compat-data': 7.29.7
       '@babel/helper-validator-option': 7.29.7
-      browserslist: 4.26.3
+      browserslist: 4.28.8
       lru-cache: 5.1.1
       semver: 6.3.1
 
@@ -3432,7 +3425,7 @@ snapshots:
     dependencies:
       '@babel/core': 7.28.4
       '@babel/helper-plugin-utils': 7.29.7
-      '@babel/types': 7.28.4
+      '@babel/types': 7.29.8
       esutils: 2.0.3
 
   '@babel/runtime@7.29.7': {}
@@ -3672,7 +3665,7 @@ snapshots:
   '@rollup/plugin-babel@6.1.0(@babel/core@7.28.4)(@types/babel__core@7.20.5)(rollup@4.63.1)':
     dependencies:
       '@babel/core': 7.28.4
-      '@babel/helper-module-imports': 7.27.1
+      '@babel/helper-module-imports': 7.29.7
       '@rollup/pluginutils': 5.4.0(rollup@4.63.1)
     optionalDependencies:
       '@types/babel__core': 7.20.5
@@ -3693,7 +3686,7 @@ snapshots:
   '@rollup/plugin-replace@6.0.3(rollup@4.63.1)':
     dependencies:
       '@rollup/pluginutils': 5.4.0(rollup@4.63.1)
-      magic-string: 0.30.19
+      magic-string: 0.30.21
     optionalDependencies:
       rollup: 4.63.1
 
@@ -3707,7 +3700,7 @@ snapshots:
 
   '@rollup/pluginutils@5.4.0(rollup@4.63.1)':
     dependencies:
-      '@types/estree': 1.0.8
+      '@types/estree': 1.0.9
       estree-walker: 2.0.2
       picomatch: 4.0.3
     optionalDependencies:
@@ -4393,8 +4386,6 @@ snapshots:
   eta@4.6.0: {}
 
   expect-type@1.2.2: {}
-
-  fake-indexeddb@6.0.0: {}
 
   fast-deep-equal@3.1.3: {}
 

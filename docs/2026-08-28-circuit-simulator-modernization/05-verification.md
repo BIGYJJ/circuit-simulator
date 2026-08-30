@@ -1,5 +1,19 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 23 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Unit | Pass | `pnpm test` 106/106 |
+| Release suite | Pass | `node --test tests/release/*.test.mjs` 32/32 |
+| Dependency allowlist | Pass | runtime 8 / dev 12；无 optional/bundled/peer/URL/git specifier |
+| License inventory | Pass | `create-license-inventory.mjs` 写入 `THIRD_PARTY_NOTICES.md` |
+| Frozen lockfile | Pass | 去掉 `fake-indexeddb` 后二次 `--frozen-lockfile` 不再改字节 |
+| Production host | Pending | 无 `FLUXLAB_RELEASE_BASE_URL` / `FLUXLAB_PROVIDER_RELEASE_ID` |
+| Human study | Pending | 仅有协议模板；无参与者证据，不得报学习成功率 |
+| Owner hygiene | Pending | 远端历史/旧归档/发布资产清理仍待 owner |
+
 ## Task 22 Changed Functionality
 
 | Check | Status | Fresh evidence |

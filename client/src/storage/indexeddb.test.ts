@@ -1,4 +1,6 @@
-import "fake-indexeddb/auto";
+import { installMemoryIndexedDB } from "../../../tests/support/memory-indexeddb";
+
+installMemoryIndexedDB();
 import { afterEach, describe, expect, it } from "vitest";
 import { dividerProjectFixture } from "../../../tests/fixtures/circuits/projects";
 import { applyProjectCommand } from "../features/editor/project-reducer";

@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 22 响应式/无障碍/体积门禁 landed
-- Completed: Task 1–22。
-- In progress: Task 23 依赖锁定、CI 与发布证据。
-- Blocked: 生产主机与人体学习门禁待 Task 23 运维/参与者证据。
-- Next: Task 23 锁定依赖、CI、发布流水线与人体验证协议。
-- Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；生产主机与人体学习门禁仍未实现。
+- Phase: Task 23 发布流水线实现已落地；唯一 RC 与远端/人体门禁仍待运维与参与者。
+- Completed: Task 1–23 实现（Step 10）。
+- In progress: 无产品实现任务。
+- Blocked: 生产主机、提供商 release ID、人体学习成功率、远端历史/归档清理。
+- Next: 从干净 SHA 跑唯一 RC（Step 11），再由运维部署并核验远端（Step 12）。
+- Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；生产主机与人体学习门禁。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 23 locked the reproducible simulator release pipeline
+
+- Completed: 8+12 依赖面、内存 IndexedDB 测试替身、license 清单、三相 `runReleaseGates`、release identity/manifest/study template、钉死 SHA 的 `quality.yml`。`pnpm check`；`pnpm test` 106/106；`node --test tests/release/*.test.mjs` 32/32；`node scripts/verify-dependencies.mjs package.json` runtime 8 / dev 12。
+- Verified: `fake-indexeddb` 已移除；二次 `pnpm install --frozen-lockfile` 不再改 lock；release 模式要求 `git-<40hex>` + 干净匹配 HEAD；既有 run root / 脏树 / 扫描改字节 / 环境 URL 泄漏均失败；协议模板不含未来 commit SHA。
+- Deviation: 测试用内存 IDB 替代 `fake-indexeddb`；本机未跑 Step 11 全量三浏览器 RC，也未部署生产主机。
+- Reason: Step 10 必须先提交实现再从干净 SHA 构建唯一 RC；远端 URL/提供商 ID/人体证据不得由代理编造。
+- Remaining: Step 11 RC 与 Step 12 远端/人体/owner 门禁。
 
 ### 2026-08-31 — Task 22 met responsive accessible workspace gates
 

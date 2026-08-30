@@ -71,3 +71,22 @@ test("release mode fails a missing, drifted, older, omitted, or tampered manifes
     await rm(root, { recursive: true });
   }
 });
+
+test("release mode accepts matching raw manifest bytes", async () => {
+  const root = await mkdtemp(join(tmpdir(), "fluxlab-rel-ok-"));
+  const expected = manifest();
+  const local = join(root, "local-manifest.json");
+  const body = JSON.stringify(expected);
+  await writeFile(local, body);
+  await writeFile(join(root, "index.html"), "<!doctype html><title>ok</title>");
+  await writeFile(join(root, "release-manifest.json"), body);
+  const server = await startVersionedStaticServer({ root, allowImmutableCache: true });
+  try {
+    const report = await verifyStaticHost(server.url, local);
+    assert.equal(report.ok, true);
+    assert.equal(report.mode, "release");
+  } finally {
+    await server.close();
+    await rm(root, { recursive: true });
+  }
+});

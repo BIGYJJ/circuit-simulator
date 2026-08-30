@@ -80,3 +80,33 @@ test("pwa fixture ids are non-release and unknown fixture ids fail", () => {
   });
   assert.equal(okDir.appBuildId, "pwa-v2");
 });
+
+test("release identity requires a matching clean HEAD", () => {
+  const commit = "1".repeat(40);
+  const identity = resolveBuildIdentity(process.cwd(), {
+    BUILD_PURPOSE: "release",
+    RELEASE_SOURCE_COMMIT: commit,
+    APP_BUILD_ID: `git-${commit}`,
+  }, { git: { head: commit, porcelain: "" } });
+  assert.equal(identity.appBuildId, `git-${commit}`);
+  assert.equal(identity.nonReleaseBuild, false);
+  assert.equal(isReleasePredicate(identity), true);
+  assert.throws(
+    () =>
+      resolveBuildIdentity(
+        process.cwd(),
+        { BUILD_PURPOSE: "release", RELEASE_SOURCE_COMMIT: commit, APP_BUILD_ID: `git-${commit}` },
+        { git: { head: "2".repeat(40), porcelain: "" } }
+      ),
+    { code: "BUILD_PURPOSE_RELEASE" }
+  );
+  assert.throws(
+    () =>
+      resolveBuildIdentity(
+        process.cwd(),
+        { BUILD_PURPOSE: "release", RELEASE_SOURCE_COMMIT: commit, APP_BUILD_ID: `git-${commit}` },
+        { git: { head: commit, porcelain: " M vite.config.ts" } }
+      ),
+    { code: "BUILD_PURPOSE_RELEASE" }
+  );
+});

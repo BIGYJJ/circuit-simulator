@@ -16,14 +16,23 @@
 
 ## 本地命令
 
+工具链固定为 Node `24.15.0`、pnpm `10.4.1`。直接依赖面固定为 runtime 8 + dev 12，见 `scripts/verify-dependencies.mjs`。
+
 | 命令 | 用途 |
 |---|---|
 | `corepack pnpm dev` | 开发服务器 `127.0.0.1:3000` |
 | `corepack pnpm check` | TypeScript |
 | `corepack pnpm test` | Vitest |
-| `corepack pnpm build` | 验证构建到 `dist/public` |
-| `corepack pnpm exec playwright test` | 浏览器门禁（本地严格静态主机，不是 Vite preview） |
+| `corepack pnpm test:release` | 发布脚本/身份/主机/依赖单测 |
+| `corepack pnpm build` | 默认 verification 构建到 `dist/public` |
+| `corepack pnpm test:browser:qualification` | 三浏览器引擎资格 |
+| `corepack pnpm test:browser:core` | 三浏览器核心旅程 |
+| `corepack pnpm test:browser:chromium` | Chromium 回归/发布冒烟/无障碍 |
+| `corepack pnpm test:browser:offline` | Chromium PWA 离线更新 |
+| `corepack pnpm release:gates` | 固定三相发布门禁 |
 | `node scripts/verify-static-host.mjs --root dist/public` | 静态主机契约 |
+
+发布候选必须从干净 commit 以 `BUILD_PURPOSE=release` 构建一次，并由运维提供 `FLUXLAB_RELEASE_BASE_URL`。人体学习协议模板见 `docs/2026-08-28-circuit-simulator-modernization/06-user-study-protocol.md`；成功率不得由自动化伪造。
 
 生产部署见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)。子路径部署不在 V1 范围。
 

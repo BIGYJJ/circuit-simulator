@@ -15,6 +15,9 @@ const tentativeOutDir =
     ? fixtureOutputDir(root, process.env.APP_BUILD_ID)
     : path.resolve(root, "dist", "public");
 const buildIdentity = resolveBuildIdentity(root, process.env, { outDir: tentativeOutDir });
+if (buildIdentity.purpose === "release" && buildIdentity.nonReleaseBuild !== false) {
+  throw new Error("BUILD_PURPOSE_RELEASE: release identity must not carry nonReleaseBuild");
+}
 const outDir =
   buildIdentity.purpose === "pwa-fixture"
     ? fixtureOutputDir(root, buildIdentity.appBuildId)

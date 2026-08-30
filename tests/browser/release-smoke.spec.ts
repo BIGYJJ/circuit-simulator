@@ -16,4 +16,7 @@ test("official and legacy routes open, reload, and a divider run succeeds", asyn
   await page.getByRole("button", { name: "运行 DC 工作点" }).click();
   await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
   await expect(page.getByTestId("vout-value")).toHaveText("6.000000 V");
+  await page.goto("/settings");
+  await expect(page.getByTestId("settings-app-build-id")).not.toHaveText("");
+  await expect(page.getByTestId("settings-result-transport")).toHaveText("binary-rawfile");
 });
