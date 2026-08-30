@@ -1,9 +1,3 @@
-declare global {
-  interface Window {
-    __qualificationResult: Promise<unknown>;
-  }
-}
-
 const workerUrl = new URL(
   "../../vendor/ngspice/qualification/qualification.worker.ts",
   import.meta.url
@@ -79,7 +73,7 @@ async function qualify() {
     webLocksAvailable: await locks,
     cancelReadyMs,
     businessRequests,
-  };
+  } as QualificationResult;
 }
 
 window.__qualificationResult = qualify()

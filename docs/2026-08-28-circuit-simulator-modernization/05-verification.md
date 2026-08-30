@@ -1,8 +1,23 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 2 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Hygiene unit | Pass | `node --test tests/release/hygiene.test.mjs` 1/1；报告不含源文本 |
+| Release hygiene walk | Pass | `pnpm release:hygiene` exit 0 |
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Legacy unit tests | Pass | `pnpm test` 31/31 |
+| Production build | Pass | `pnpm build`；无 `dist/public/__manus__`、无 `dist/index.js` |
+| Startup network | Pass | Playwright Chromium `no-business-network.spec.ts` 1 passed against `vite preview` |
+| Prod audit | Pass | `pnpm audit --prod` exit 0；metadata high=0 critical=0 moderate=0 low=0；13 production dependencies |
+| Gitleaks | Pass with allowlist | `--no-git --redact` exit 0 after ignoring documented `03-plan.md:319` SHA-256 wording |
+| Tracked leftovers | Pass after staging | `git ls-files` will drop `__manus__`/`server/`/`template.json` in this commit |
+| Remote archives | Unverified | 远端历史、旧 ZIP 与发布资产仍未由仓库所有者提供轮换/清理证据 |
+
 ## Environment
 
-- Branch: `cursor_citcuit` after baseline `a86e994`
+- Branch: `cursor_citcuit` after Task 1 `00224ba`
 - Runtime: Windows, pnpm 10.4.1, Playwright 1.55.0
 - Browsers (PLAYWRIGHT_BROWSERS_PATH=`D:\tools\playwright-browsers`): Chromium 140.0.7339.16 (build 1187), Firefox 141.0 (build 1490), WebKit 26.0 (build 2203)
 - Engine: ngspice-46 / `engineBuildId=ngspice-46-emscripten-singlethread-256m-20260527`

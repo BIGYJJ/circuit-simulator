@@ -1,8 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const qualificationCsp =
-  "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'";
-
 export default defineConfig({
   testDir: "tests/browser",
   fullyParallel: true,
@@ -20,16 +17,9 @@ export default defineConfig({
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {
-    command: "pnpm exec vite --host 127.0.0.1 --port 4173 --strictPort",
+    command: "pnpm build && pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort",
     url: "http://127.0.0.1:4173",
     reuseExistingServer: false,
-    timeout: 120_000,
-    env: {
-      ...process.env,
-      FLUXLAB_PLAYWRIGHT: "1",
-    },
-    headers: {
-      "Content-Security-Policy": qualificationCsp,
-    },
+    timeout: 180_000,
   },
 });

@@ -2,14 +2,24 @@
 
 ## Current Status
 
-- Phase: Task 1 qualification passed locally
-- Completed: 前置确认 B；删除 `.project-config.json`；基线 commit `a86e994`；钉死 `@o.z/ngspice-wasm` / ngspice-46 单线程 WASM；三浏览器资格测试 3 passed。
-- In progress: 准备 Task 1 证据提交，随后进入 Task 2。
+- Phase: Task 2 hosted template and telemetry removed
+- Completed: 前置确认 B；基线 `a86e994`；Task 1 `00224ba`；Task 2 删除 Manus/Forge/analytics/Express/server 脚手架，Vite 仅静态预览。
+- In progress: 准备提交 Task 2，随后进入 Task 3。
 - Blocked: 无。
-- Next: commit Task 1 后开始 Task 2（清凭据/遥测/代理）。
-- Unverified: 远端历史/旧 ZIP；PWA 与产品工作台仍未实现。
+- Next: Task 3 项目契约 / canonical / zod。
+- Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；PWA 与产品工作台仍未实现。
+- Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 2 removed hosted template and telemetry
+
+- Completed: 删除 `__manus__`、`server/`、`shared/`、`template.json`、`components.json`、shadcn UI、hooks、wouter patch；`start`/`preview` 改为严格 Vite preview；增加 `release:hygiene` 与 `no-business-network` 预览测试。`pnpm check` exit 0；`pnpm test` 31/31；`node --test tests/release/hygiene.test.mjs` 1/1；Chromium 网络测试 1 passed；`pnpm audit --prod` exit 0（high=0）。
+- Verified: `dist/public/__manus__` 与 `dist/index.js` 不存在；启动页不再请求 analytics、Google Fonts 或 `/__manus__`。
+- Deviation: `vite.config.ts` 仍调用 `readEngineFingerprint()` 并保留 `qualification.html` 多入口、`worker.format=es`、vendor `fs.allow`，以满足 Task 1 门禁。`@types/node` 使用 `^24.13.3`（不存在 `24.15.0` 类型包）。卫生扫描跳过 `docs/` 与扫描器自身，避免把计划正文中的禁用词当成运行时残留。`.gitleaksignore` 仅允许 `03-plan.md:319` 的 SHA-256 叙述误报。
+- Reason: Task 1 资格资产必须继续可构建；类型包版本以 npm 实际 24 线为准。
+- Remaining: Task 3–23。
+
 
 ### 2026-08-31 — Task 1 ngspice WASM qualified on three browsers
 

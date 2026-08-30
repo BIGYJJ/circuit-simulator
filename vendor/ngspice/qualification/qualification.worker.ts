@@ -1,4 +1,25 @@
-import createNgspiceModule from "../ngspice.mjs";
+import createNgspiceModuleRaw from "../ngspice.mjs";
+
+type NgspiceModule = {
+  wasmMemory?: { buffer: ArrayBuffer };
+  HEAPU8?: Uint8Array;
+  FS: {
+    mkdir: (path: string) => void;
+    writeFile: (path: string, data: string | Uint8Array) => void;
+    readFile: (path: string) => Uint8Array;
+    readdir: (path: string) => string[];
+    unlink: (path: string) => void;
+    cwd?: string;
+    chdir?: (path: string) => void;
+  };
+  callMain?: (args: string[]) => number;
+  _main?: (argc: number, argv: number) => number;
+  _malloc?: (size: number) => number;
+  _free?: (ptr: number) => void;
+  stringToUTF8?: (value: string, ptr: number, max: number) => void;
+};
+
+const createNgspiceModule = createNgspiceModuleRaw as (options?: Record<string, unknown>) => Promise<NgspiceModule>;
 import wasmUrl from "../ngspice.wasm?url";
 import transportJson from "../RESULT_TRANSPORT.json";
 import manifestJson from "../QUALIFIED_VECTORS.json";
@@ -69,8 +90,9 @@ function parseRawfile(bytes: Uint8Array) {
     for (let v = 0; v < names.length; v++) {
       vectors[v].values[p] = view.getFloat64(offset, true);
       offset += 8;
-      if (complex && vectors[v].imag) {
-        vectors[v].imag[p] = view.getFloat64(offset, true);
+      const imag = vectors[v]?.imag;
+      if (complex && imag) {
+        imag[p] = view.getFloat64(offset, true);
         offset += 8;
       }
     }
