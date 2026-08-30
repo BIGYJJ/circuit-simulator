@@ -12,11 +12,15 @@ interface ResultDockProps {
 }
 
 function isMonotonicRising(values: Float64Array) {
-  const samples = [...values].map(Math.abs);
-  for (let index = 1; index < samples.length; index += 1) {
-    if (samples[index]! + 1e-18 < samples[index - 1]!) return false;
+  if (values.length <= 1) return false;
+  const step = values.length > 4096 ? Math.floor(values.length / 2048) : 1;
+  let previous = Math.abs(values[0]!);
+  for (let index = step; index < values.length; index += step) {
+    const current = Math.abs(values[index]!);
+    if (current + 1e-18 < previous) return false;
+    previous = current;
   }
-  return samples.length > 1;
+  return true;
 }
 
 export default function ResultDock({ run, compare }: ResultDockProps) {

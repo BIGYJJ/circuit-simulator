@@ -179,10 +179,10 @@ test("project library lists a large envelope from key cursors only", async ({ pa
 test("settings page reports real storage and does not invent engine success", async ({ page }) => {
   await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "设置" })).toBeVisible();
-  await expect(page.getByText(/verification \/ nonReleaseBuild/)).toBeVisible();
-  await expect(page.getByText(/usage=|unsupported|estimate failed/)).toBeVisible();
-  await expect(page.getByText("unavailable（仿真 Worker 尚未接入）")).toBeVisible();
-  await expect(page.getByText("not installed")).toBeVisible();
+  await expect(page.getByTestId("settings-app-build-id")).not.toHaveText("");
+  await expect(page.getByTestId("settings-engine-version")).toHaveText("ngspice-46");
+  await expect(page.getByTestId("settings-result-transport")).toHaveText("binary-rawfile");
+  await expect(page.getByTestId("settings-storage-estimate")).toHaveText(/usage=|unsupported|failed/);
   await page.reload();
   await expect(page.getByRole("heading", { name: "设置" })).toBeVisible();
   await page.getByRole("link", { name: "项目库" }).click();

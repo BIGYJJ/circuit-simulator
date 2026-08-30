@@ -1,7 +1,9 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
+import { usePreferences } from "../contexts/ThemeContext";
 import { APP_BUILD_ID } from "./build-info";
-import { LegacyMigrationNotice, peekLegacyNoticeSession, type LegacyPath } from "./LegacyRedirect";
+import { handleWorkspaceShortcut } from "./keyboard-shortcuts";
+import { LegacyMigrationNotice, peekLegacyNoticeSession, type LegacyPath } from "./legacy-notice";
 import type { AnalysisId, CircuitProjectV2, ComponentId, Diagnostic } from "../domain/project/project-v2";
 import AnalysisPanel from "../features/analysis/AnalysisPanel";
 import DiagnosticsPanel from "../features/analysis/DiagnosticsPanel";
@@ -119,9 +121,10 @@ function runLabelOf(kind: string | undefined) {
 export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
   const search = useSearch();
   const [, navigate] = useLocation();
+  const { settings } = usePreferences();
   const searchParams = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
   const lesson = lessonById(searchParams.get("lesson") ?? "");
-  const view = (searchParams.get("view") as LessonViewMode | null) ?? (lesson ? "guided" : "standard");
+  const view = (searchParams.get("view") as LessonViewMode | null) ?? (lesson ? "guided" : settings.defaultView);
   const panel = searchParams.get("panel");
   const [legacyNotice, setLegacyNotice] = useState<LegacyPath | null>(null);
   const [guidedStepId, setGuidedStepId] = useState(lesson?.steps[0]?.id ?? "");
@@ -282,7 +285,7 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
     return () => {
       cancelledEstimate = true;
     };
-  }, [editor.present, analysisId]);
+  }, [editor.present.electricalRevision, editor.present.analyses, editor.present.probes, editor.present.models, analysisId]);
 
   useEffect(() => {
     if (!selectedRun) {
@@ -301,12 +304,43 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
     return () => {
       cancelledFresh = true;
     };
-  }, [selectedRun, editor.present]);
+  }, [selectedRun, editor.present.electricalRevision, editor.present.id]);
 
   function actionAllowed(action: LessonAction) {
     if (!lesson || view !== "guided" || !currentStep) return true;
     return canPerformLessonAction(currentStep, action);
   }
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const handled = handleWorkspaceShortcut(event, {
+        selectedId,
+        componentIds: editor.present.schematic.components.map(item => item.id),
+        onSelect: setSelectedId,
+        onSelectWire: setSelectedWireId,
+        onNudge: (dx, dy) => {
+          if (!selectedId) return;
+          const current = editor.present.layout.components[selectedId];
+          if (!current) return;
+          void runCommand({
+            type: "layout/componentSet",
+            componentId: selectedId,
+            layout: { ...current, x: current.x + dx, y: current.y + dy },
+          });
+        },
+        onUndo: () => dispatch({ type: "undo", changedAt: new Date().toISOString() }),
+        onRedo: () => dispatch({ type: "redo", changedAt: new Date().toISOString() }),
+        onRun: () => void onRun(),
+        onEscape: () => {
+          setSelectedId(null);
+          setSelectedWireId(null);
+        },
+      });
+      if (handled) event.preventDefault();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   function setLessonView(next: LessonViewMode) {
     const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
@@ -416,8 +450,11 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
     return <main className="workspace-error">正在打开项目…</main>;
   }
 
+  const idle = !running && !seriesBusy && saveState?.status === "saved";
+  const saveIcon = saveState?.status === "saved" ? "✓" : saveState?.status === "error" ? "!" : "●";
+
   return (
-    <div className="workspace-shell">
+    <div className="workspace-shell" data-testid="workspace-ready" data-idle={idle ? "true" : "false"} data-view={view}>
       <LegacyMigrationNotice path={legacyNotice} />
       {lesson ? (
         <LessonOverlay
@@ -438,7 +475,12 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
         <Link href="/">项目库</Link>
         <h1>{editor.present.title}</h1>
         <p data-testid="project-revision">{`修订 ${editor.present.revision} / 电气 ${editor.present.electricalRevision}`}</p>
-        <p data-testid="project-save-state">{saveLabel(saveState)}</p>
+        <p data-testid="project-save-state" aria-live="polite">
+          <span data-status-icon aria-hidden="true">
+            {saveIcon}
+          </span>{" "}
+          {saveLabel(saveState)}
+        </p>
         {saveState?.status === "error" ? (
           <button type="button" onClick={() => laneRef.current?.retry()}>
             重试
@@ -456,20 +498,26 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
         <p key={`${item.code}-${item.message}`}>{item.code}</p>
       ))}
       <div className="workspace-body">
-        <ComponentPalette
-          project={editor.present}
-          allowAdd={actionAllowed("component:add")}
-          onCommand={command => void runCommand(command)}
-        />
-        <SchematicCanvas
-          project={editor.present}
-          selectedId={selectedId}
-          selectedWireId={selectedWireId}
-          onSelect={setSelectedId}
-          onSelectWire={setSelectedWireId}
-          onCommand={command => void runCommand(command)}
-        />
-        <div className="workspace-rail">
+        <details className="workspace-palette-wrap" data-testid="workspace-palette" open>
+          <summary>元件库</summary>
+          <ComponentPalette
+            project={editor.present}
+            allowAdd={actionAllowed("component:add")}
+            onCommand={command => void runCommand(command)}
+          />
+        </details>
+        <details className="workspace-canvas-wrap" data-testid="workspace-canvas-wrap" open>
+          <summary>原理图</summary>
+          <SchematicCanvas
+            project={editor.present}
+            selectedId={selectedId}
+            selectedWireId={selectedWireId}
+            onSelect={setSelectedId}
+            onSelectWire={setSelectedWireId}
+            onCommand={command => void runCommand(command)}
+          />
+        </details>
+        <div className="workspace-rail" data-testid="workspace-rail">
           <div data-testid="workspace-panel-analysis" data-active={panel === "analysis" ? "true" : "false"}>
             <AnalysisPanel
               project={editor.present}
@@ -552,6 +600,7 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
             onCompare={setCompareRun}
           />
           <DiagnosticsPanel
+            onSelect={setSelectedId}
             diagnostics={[
               ...previewDiagnostics,
               ...runDiagnostics,

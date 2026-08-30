@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 21 本地主机契约 landed
-- Completed: Task 1–21。
-- In progress: Task 22 响应式/无障碍/体积门禁。
+- Phase: Task 22 响应式/无障碍/体积门禁 landed
+- Completed: Task 1–22。
+- In progress: Task 23 依赖锁定、CI 与发布证据。
 - Blocked: 生产主机与人体学习门禁待 Task 23 运维/参与者证据。
-- Next: Task 22 满足响应式、键盘、无障碍、性能与体积门禁。
+- Next: Task 23 锁定依赖、CI、发布流水线与人体验证协议。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；生产主机与人体学习门禁仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 22 met responsive accessible workspace gates
+
+- Completed: 360/768/1024 布局、键盘快捷键、设置真值与三偏好、`measureBuild` 体积门禁、500 元件编辑与近上限结果表。`node --test tests/release/build-metrics.test.mjs` 1/1；`pnpm exec vitest run client/src/storage/indexeddb.test.ts` 12/12；`pnpm check`；`pnpm test` 106/106；`node scripts/measure-build.mjs dist/public` eager JS 271415/85354、total 286028/89682、debug 0；Chromium `accessibility-performance.spec.ts` 7 passed (16.5s)，retries=0。
+- Verified: `/settings` 直达/刷新保留主题/动效/默认视图；360 引导课跑出 6.000000 V；768 可改参布线；1024 轨道/仪器/Ctrl+Enter/撤销重做；取消运行 ≤500 ms；结果表每页 ≤200 行。
+- Deviation: 首屏体积靠路由/IndexedDB/模板懒加载，不靠删依赖省字节；空诊断 `aria-live` 显示「无诊断」以免被当成 hidden；布局命令跳过整树 zod 重解析；`longtask` 窗口只计交互样本，零长任务视为通过。
+- Reason: 546 kB 单包超门禁；500 元件每次 `structuredClone`+zod 会污染 50 ms 顶；空 live 区域 Playwright 判 hidden。
+- Remaining: Task 23。
 
 ### 2026-08-31 — Task 21 defined and verified static production hosting
 

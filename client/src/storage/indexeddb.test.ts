@@ -20,6 +20,7 @@ import {
   loadLastOpenedProject,
   saveLastOpenedProject,
   saveLessonSession,
+  loadLocalSettings,
   saveLocalSettings,
   saveProject,
   type StoredSettingEnvelope,
@@ -365,6 +366,54 @@ describe("run sequence allocation", () => {
     const created = await createRunningRun(record.value);
     expect(created.ok).toBe(false);
     if (!created.ok) expect(created.diagnostics[0]?.code).toBe("STORAGE_RUN_SEQUENCE_EXHAUSTED");
+  });
+});
+
+describe("local settings preferences", () => {
+  it("round-trips only under local-settings and rejects extra fields without a write", async () => {
+    const saved = await saveLocalSettings({
+      schemaVersion: 1,
+      theme: "light",
+      reducedMotion: "reduce",
+      defaultView: "expert",
+    });
+    expect(saved.ok).toBe(true);
+    const loaded = await loadLocalSettings();
+    expect(loaded.ok && loaded.value).toEqual({
+      schemaVersion: 1,
+      theme: "light",
+      reducedMotion: "reduce",
+      defaultView: "expert",
+    });
+    const rejected = await saveLocalSettings({
+      schemaVersion: 1,
+      theme: "dark",
+      reducedMotion: "system",
+      defaultView: "standard",
+      extra: true,
+    } as never);
+    expect(rejected.ok).toBe(false);
+    const after = await loadLocalSettings();
+    expect(after.ok && after.value?.theme).toBe("light");
+    const lessonPayload = parseStoredSettingEnvelope({
+      envelopeVersion: 1,
+      storageVersion: 1,
+      key: "local-settings",
+      value: { kind: "lesson-session", lessonId: "foundation-divider", projectId: "p1", templateKey: "divider" },
+    });
+    expect(lessonPayload.ok).toBe(false);
+    const extraField = parseStoredSettingEnvelope({
+      envelopeVersion: 1,
+      storageVersion: 1,
+      key: "local-settings",
+      value: {
+        kind: "local-settings",
+        settings: { schemaVersion: 1, theme: "dark", reducedMotion: "system", defaultView: "standard", extra: 1 },
+      },
+    });
+    expect(extraField.ok).toBe(false);
+    const still = await loadLocalSettings();
+    expect(still.ok && still.value?.theme).toBe("light");
   });
 });
 

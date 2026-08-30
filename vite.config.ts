@@ -70,6 +70,10 @@ export default defineConfig({
     __FLUXLAB_NON_RELEASE_BUILD__: JSON.stringify(buildIdentity.nonReleaseBuild),
     __FLUXLAB_NON_RELEASE_FIXTURE__: JSON.stringify("nonReleaseFixture" in buildIdentity && buildIdentity.nonReleaseFixture === true),
     __FLUXLAB_ENGINE_BUILD_ID__: JSON.stringify(fingerprint.engineBuildId),
+    __FLUXLAB_ENGINE_VERSION__: JSON.stringify(fingerprint.version),
+    __FLUXLAB_RESULT_TRANSPORT__: JSON.stringify(fingerprint.resultTransport),
+    __FLUXLAB_MODULE_SHA256__: JSON.stringify(fingerprint.moduleSha256),
+    __FLUXLAB_WASM_SHA256__: JSON.stringify(fingerprint.wasmSha256),
   },
   plugins: [
     react(),

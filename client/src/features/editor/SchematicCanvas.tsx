@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { CircuitProjectV2, ComponentId, WireEndpoint } from "../../domain/project/project-v2";
+import { memo, useState } from "react";
+import type { CircuitProjectV2, ComponentId, ComponentInstance, WireEndpoint } from "../../domain/project/project-v2";
 import { getStaticComponentDefinition } from "../../domain/schematic/component-library";
 import type { ProjectCommand } from "./project-reducer";
 
@@ -43,6 +43,110 @@ function pinOffset(pin: string) {
   return PIN_OFFSET[pin] ?? { x: 24, y: 0 };
 }
 
+const ComponentGlyph = memo(function ComponentGlyph({
+  component,
+  x,
+  y,
+  selected,
+  pendingPin,
+  onSelect,
+  onPin,
+  onNudge,
+  onMoveTo,
+}: {
+  component: ComponentInstance;
+  x: number;
+  y: number;
+  selected: boolean;
+  pendingPin: string | null;
+  onSelect: (id: ComponentId) => void;
+  onPin: (endpoint: WireEndpoint) => void;
+  onNudge: (id: ComponentId, dx: number, dy: number) => void;
+  onMoveTo: (id: ComponentId, nextX: number, nextY: number) => void;
+}) {
+  const pins = component.kind === "subcircuit" ? component.orderedPins : getStaticComponentDefinition(component.kind).pins;
+  return (
+    <g
+      data-testid={`component-${component.id}`}
+      tabIndex={0}
+      transform={`translate(${x} ${y})`}
+      onClick={() => onSelect(component.id)}
+      onFocus={() => onSelect(component.id)}
+      onPointerDown={event => {
+        if (event.button !== 0) return;
+        (event.currentTarget as SVGElement).dataset.drag = `${x},${y},${event.clientX},${event.clientY}`;
+      }}
+      onPointerMove={event => {
+        const drag = (event.currentTarget as SVGElement).dataset.drag;
+        if (!drag) return;
+        const [ox, oy, cx, cy] = drag.split(",").map(Number);
+        onMoveTo(component.id, ox + event.clientX - cx, oy + event.clientY - cy);
+      }}
+      onPointerUp={event => {
+        const el = event.currentTarget as SVGElement;
+        const drag = el.dataset.drag;
+        if (drag) {
+          const [ox, oy, cx, cy] = drag.split(",").map(Number);
+          onMoveTo(component.id, ox + event.clientX - cx, oy + event.clientY - cy);
+        }
+        delete el.dataset.drag;
+      }}
+      onKeyDown={event => {
+        if (!event.altKey) return;
+        if (event.key === "ArrowRight") {
+          event.preventDefault();
+          onNudge(component.id, 20, 0);
+        }
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          onNudge(component.id, -20, 0);
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          onNudge(component.id, 0, -20);
+        }
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          onNudge(component.id, 0, 20);
+        }
+      }}
+    >
+      <rect
+        x={-36}
+        y={-22}
+        width={72}
+        height={44}
+        rx={6}
+        fill={selected ? "#18200e" : "#101211"}
+        stroke={selected ? "#c7f43d" : "rgba(235,244,224,.25)"}
+      />
+      <text x={0} y={-2} textAnchor="middle" fill="currentColor" fontSize="12">
+        {KIND_LABEL[component.kind] ?? component.kind}
+      </text>
+      <text x={0} y={14} textAnchor="middle" fill="currentColor" fontSize="11">
+        {component.refdes}
+      </text>
+      {pins.map(pin => {
+        const offset = pinOffset(pin);
+        return (
+          <circle
+            key={pin}
+            data-testid={`pin-${component.id}-${pin}`}
+            cx={offset.x}
+            cy={offset.y}
+            r={6}
+            fill={pendingPin === pin ? "#c7f43d" : "#27d9ef"}
+            onClick={event => {
+              event.stopPropagation();
+              onPin({ componentId: component.id, pin });
+            }}
+          />
+        );
+      })}
+    </g>
+  );
+});
+
 export default function SchematicCanvas({
   project,
   selectedId,
@@ -53,13 +157,12 @@ export default function SchematicCanvas({
 }: SchematicCanvasProps) {
   const [pending, setPending] = useState<WireEndpoint | null>(null);
 
-  function moveSelected(dx: number, dy: number) {
-    if (!selectedId) return;
-    const current = project.layout.components[selectedId];
-    if (!current) return;
+  function moveComponent(componentId: ComponentId, dx: number, dy: number) {
+    const current = project.layout.components[componentId];
+    if (!current || (dx === 0 && dy === 0)) return;
     onCommand({
       type: "layout/componentSet",
-      componentId: selectedId,
+      componentId,
       layout: { ...current, x: current.x + dx, y: current.y + dy },
     });
   }
@@ -87,7 +190,7 @@ export default function SchematicCanvas({
   }
 
   return (
-    <svg className="workspace-canvas" viewBox="0 0 720 640" role="img" aria-label="原理图">
+    <svg className="workspace-canvas" viewBox="0 0 720 640" role="img" aria-label="原理图" data-testid="workspace-canvas">
       {project.schematic.wires.map(wire => {
         const from = project.layout.components[wire.from.componentId];
         const to = project.layout.components[wire.to.componentId];
@@ -98,6 +201,7 @@ export default function SchematicCanvas({
         return (
           <g key={wire.id} data-testid={`wire-${wire.id}`}>
             <line
+              data-testid={`select-wire-${wire.id}`}
               x1={from.x + fromPin.x}
               y1={from.y + fromPin.y}
               x2={to.x + toPin.x}
@@ -124,72 +228,26 @@ export default function SchematicCanvas({
       })}
       {project.schematic.components.map(component => {
         const layout = project.layout.components[component.id] ?? { x: 40, y: 40, rotation: 0 };
-        const selected = selectedId === component.id;
-        const pins = component.kind === "subcircuit" ? component.orderedPins : getStaticComponentDefinition(component.kind).pins;
         return (
-          <g
+          <ComponentGlyph
             key={component.id}
-            data-testid={`component-${component.id}`}
-            tabIndex={0}
-            transform={`translate(${layout.x} ${layout.y})`}
-            onClick={() => {
-              onSelect(component.id);
+            component={component}
+            x={layout.x}
+            y={layout.y}
+            selected={selectedId === component.id}
+            pendingPin={pending?.componentId === component.id ? pending.pin : null}
+            onSelect={id => {
+              onSelect(id);
               onSelectWire(null);
             }}
-            onFocus={() => onSelect(component.id)}
-            onKeyDown={event => {
-              if (event.altKey && event.key === "ArrowRight") {
-                event.preventDefault();
-                moveSelected(20, 0);
-              }
-              if (event.altKey && event.key === "ArrowLeft") {
-                event.preventDefault();
-                moveSelected(-20, 0);
-              }
-              if (event.altKey && event.key === "ArrowUp") {
-                event.preventDefault();
-                moveSelected(0, -20);
-              }
-              if (event.altKey && event.key === "ArrowDown") {
-                event.preventDefault();
-                moveSelected(0, 20);
-              }
+            onPin={clickPin}
+            onNudge={moveComponent}
+            onMoveTo={(id, nextX, nextY) => {
+              const current = project.layout.components[id];
+              if (!current || (current.x === nextX && current.y === nextY)) return;
+              onCommand({ type: "layout/componentSet", componentId: id, layout: { ...current, x: nextX, y: nextY } });
             }}
-          >
-            <rect
-              x={-36}
-              y={-22}
-              width={72}
-              height={44}
-              rx={6}
-              fill={selected ? "#18200e" : "#101211"}
-              stroke={selected ? "#c7f43d" : "rgba(235,244,224,.25)"}
-            />
-            <text x={0} y={-2} textAnchor="middle" fill="currentColor" fontSize="12">
-              {KIND_LABEL[component.kind] ?? component.kind}
-            </text>
-            <text x={0} y={14} textAnchor="middle" fill="currentColor" fontSize="11">
-              {component.refdes}
-            </text>
-            {pins.map(pin => {
-              const offset = pinOffset(pin);
-              const active = pending?.componentId === component.id && pending.pin === pin;
-              return (
-                <circle
-                  key={pin}
-                  data-testid={`pin-${component.id}-${pin}`}
-                  cx={offset.x}
-                  cy={offset.y}
-                  r={6}
-                  fill={active ? "#c7f43d" : "#27d9ef"}
-                  onClick={event => {
-                    event.stopPropagation();
-                    clickPin({ componentId: component.id, pin });
-                  }}
-                />
-              );
-            })}
-          </g>
+          />
         );
       })}
     </svg>

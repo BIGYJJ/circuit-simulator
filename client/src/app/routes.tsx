@@ -1,15 +1,23 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Route, Switch, useLocation, useParams } from "wouter";
-import ProjectLibrary from "../features/project-library/ProjectLibrary";
-import { openOrCreateLessonProject } from "../features/learning/lessons";
 import NotFound from "../pages/NotFound";
-import LegacyRedirect from "./LegacyRedirect";
-import ProjectWorkspace from "./ProjectWorkspace";
-import SettingsPage from "./SettingsPage";
+
+const ProjectLibrary = lazy(() => import("../features/project-library/ProjectLibrary"));
+const ProjectWorkspace = lazy(() => import("./ProjectWorkspace"));
+const SettingsPage = lazy(() => import("./SettingsPage"));
+const LegacyRedirect = lazy(() => import("./LegacyRedirect"));
+
+function Fallback() {
+  return <main className="workspace-error">正在打开…</main>;
+}
 
 function ProjectRoute() {
   const params = useParams<{ projectId: string }>();
-  return <ProjectWorkspace projectId={params.projectId} />;
+  return (
+    <Suspense fallback={<Fallback />}>
+      <ProjectWorkspace projectId={params.projectId} />
+    </Suspense>
+  );
 }
 
 function LearnRoute() {
@@ -19,13 +27,15 @@ function LearnRoute() {
 
   useEffect(() => {
     let cancelled = false;
-    void openOrCreateLessonProject(params.lessonId).then(result => {
-      if (cancelled) return;
-      if (!result.ok) {
-        setError(result.diagnostics[0]?.code ?? "LESSON_UNKNOWN");
-        return;
-      }
-      navigate(`/project/${result.value.projectId}?lesson=${result.value.lesson.id}&view=guided`, { replace: true });
+    void import("../features/learning/lessons").then(({ openOrCreateLessonProject }) => {
+      void openOrCreateLessonProject(params.lessonId).then(result => {
+        if (cancelled) return;
+        if (!result.ok) {
+          setError(result.diagnostics[0]?.code ?? "LESSON_UNKNOWN");
+          return;
+        }
+        navigate(`/project/${result.value.projectId}?lesson=${result.value.lesson.id}&view=guided`, { replace: true });
+      });
     });
     return () => {
       cancelled = true;
@@ -45,14 +55,50 @@ function LearnRoute() {
 export default function AppRoutes() {
   return (
     <Switch>
-      <Route path="/" component={ProjectLibrary} />
-      <Route path="/settings" component={SettingsPage} />
+      <Route path="/">
+        {() => (
+          <Suspense fallback={<Fallback />}>
+            <ProjectLibrary />
+          </Suspense>
+        )}
+      </Route>
+      <Route path="/settings">
+        {() => (
+          <Suspense fallback={<Fallback />}>
+            <SettingsPage />
+          </Suspense>
+        )}
+      </Route>
       <Route path="/learn/:lessonId" component={LearnRoute} />
       <Route path="/project/:projectId" component={ProjectRoute} />
-      <Route path="/engineering/ops">{() => <LegacyRedirect path="/engineering/ops" />}</Route>
-      <Route path="/engineering">{() => <LegacyRedirect path="/engineering" />}</Route>
-      <Route path="/led">{() => <LegacyRedirect path="/led" />}</Route>
-      <Route path="/divider">{() => <LegacyRedirect path="/divider" />}</Route>
+      <Route path="/engineering/ops">
+        {() => (
+          <Suspense fallback={<Fallback />}>
+            <LegacyRedirect path="/engineering/ops" />
+          </Suspense>
+        )}
+      </Route>
+      <Route path="/engineering">
+        {() => (
+          <Suspense fallback={<Fallback />}>
+            <LegacyRedirect path="/engineering" />
+          </Suspense>
+        )}
+      </Route>
+      <Route path="/led">
+        {() => (
+          <Suspense fallback={<Fallback />}>
+            <LegacyRedirect path="/led" />
+          </Suspense>
+        )}
+      </Route>
+      <Route path="/divider">
+        {() => (
+          <Suspense fallback={<Fallback />}>
+            <LegacyRedirect path="/divider" />
+          </Suspense>
+        )}
+      </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

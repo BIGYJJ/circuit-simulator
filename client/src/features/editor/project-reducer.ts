@@ -73,6 +73,25 @@ function referencedComponentIds(project: CircuitProjectV2) {
 }
 
 function mutate(project: CircuitProjectV2, command: ProjectCommand): CircuitProjectV2 | "noop" | "ref" {
+  if (command.type === "layout/componentSet") {
+    if (!project.schematic.components.some(item => item.id === command.componentId)) return "noop";
+    const current = project.layout.components[command.componentId];
+    if (
+      current &&
+      current.x === command.layout.x &&
+      current.y === command.layout.y &&
+      current.rotation === command.layout.rotation
+    ) {
+      return "noop";
+    }
+    return {
+      ...project,
+      layout: {
+        ...project.layout,
+        components: { ...project.layout.components, [command.componentId]: command.layout },
+      },
+    };
+  }
   const next = structuredClone(project);
   switch (command.type) {
     case "project/rename":
@@ -175,11 +194,6 @@ function mutate(project: CircuitProjectV2, command: ProjectCommand): CircuitProj
       if (!next.notes.some(item => item.id === command.noteId)) return "noop";
       next.notes = next.notes.filter(item => item.id !== command.noteId);
       return next;
-    case "layout/componentSet":
-      if (!next.schematic.components.some(item => item.id === command.componentId)) return "noop";
-      if (JSON.stringify(next.layout.components[command.componentId]) === JSON.stringify(command.layout)) return "noop";
-      next.layout.components[command.componentId] = command.layout;
-      return next;
     case "layout/wireRouteSet":
       next.layout.wireRoutes[command.wireId] = command.route;
       return next;
@@ -202,6 +216,7 @@ export function applyProjectCommand(
   result.revision = project.revision + 1;
   if (isElectricalCommand(command)) result.electricalRevision = project.electricalRevision + 1;
   result.updatedAt = changedAt;
+  if (command.type.startsWith("layout/")) return { ok: true, value: result, diagnostics: [] };
   const parsed = parseCircuitProjectV2(result);
   if (!parsed.ok) return parsed;
   return { ok: true, value: parsed.value, diagnostics: [] };

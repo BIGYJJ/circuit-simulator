@@ -6,31 +6,11 @@ import {
   hasAcknowledgedLegacyNotice,
   loadLastOpenedProject,
   loadProject,
-  type LegacyNoticeValue,
 } from "../storage/indexeddb";
+import { LEGACY_NOTICE_SESSION_KEY, type LegacyPath } from "./legacy-notice";
 
-export type LegacyPath = LegacyNoticeValue["path"];
-
-const NOTICE_SESSION_KEY = "fluxlab-legacy-notice";
-
-function isLegacyPath(value: string | null): value is LegacyPath {
-  return value === "/divider" || value === "/led" || value === "/engineering" || value === "/engineering/ops";
-}
-
-export function peekLegacyNoticeSession(): LegacyPath | null {
-  if (typeof sessionStorage === "undefined") return null;
-  const raw = sessionStorage.getItem(NOTICE_SESSION_KEY);
-  return isLegacyPath(raw) ? raw : null;
-}
-
-export function LegacyMigrationNotice({ path }: { path: LegacyPath | null }) {
-  if (!path) return null;
-  return (
-    <p data-testid="legacy-notice" role="status">
-      旧地址 {path} 已迁到统一工作台。本重定向只保留一个发布周期，计划于下一正式版本移除。
-    </p>
-  );
-}
+export type { LegacyPath } from "./legacy-notice";
+export { LegacyMigrationNotice, peekLegacyNoticeSession } from "./legacy-notice";
 
 function lessonFor(path: LegacyPath) {
   if (path === "/divider") return "foundation-divider";
@@ -52,14 +32,14 @@ export default function LegacyRedirect({ path }: { path: LegacyPath }) {
         return;
       }
       if (!acked.value) {
-        sessionStorage.setItem(NOTICE_SESSION_KEY, path);
+        sessionStorage.setItem(LEGACY_NOTICE_SESSION_KEY, path);
         const written = await acknowledgeLegacyNotice(path);
         if (!written.ok) {
           setError(written.diagnostics[0]?.code ?? "LEGACY_NOTICE_FAILED");
           return;
         }
       } else {
-        sessionStorage.removeItem(NOTICE_SESSION_KEY);
+        sessionStorage.removeItem(LEGACY_NOTICE_SESSION_KEY);
       }
       const lessonId = lessonFor(path);
       if (lessonId) {

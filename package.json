@@ -18,7 +18,8 @@
     "format:check": "prettier --check .",
     "release:hygiene": "node scripts/verify-release-hygiene.mjs",
     "pwa:fixtures": "node scripts/build-pwa-fixtures.mjs",
-    "verify:host": "node scripts/verify-static-host.mjs --root dist/public"
+    "verify:host": "node scripts/verify-static-host.mjs --root dist/public",
+    "measure:build": "node scripts/measure-build.mjs dist/public"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -1,5 +1,16 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 22 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Build metric fixture | Pass | `node --test tests/release/build-metrics.test.mjs` 1/1 |
+| Local settings | Pass | vitest `indexeddb.test.ts` 12/12 |
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Unit | Pass | `pnpm test` 106/106 |
+| Size gates | Pass | eager JS 271415 B / 85354 B gzip；total 286028 / 89682；debug collector 0；不声称删依赖带来体积 |
+| Accessibility / performance | Pass | Playwright Chromium `accessibility-performance.spec.ts` 7 passed (16.5s)，retries=0 |
+
 ## Task 21 Changed Functionality
 
 | Check | Status | Fresh evidence |

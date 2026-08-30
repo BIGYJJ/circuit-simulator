@@ -18,7 +18,7 @@ export default function OfflineStatus() {
   useEffect(() => subscribeFluxlabServiceWorker(setStatus), []);
 
   return (
-    <p className="offline-status" data-testid="offline-status" data-status={status}>
+    <p className="offline-status" data-testid="offline-status" data-status={status} aria-live="polite">
       <span data-testid="app-build-id">{APP_BUILD_ID}</span>
       <span data-testid="engine-build-id">{ENGINE_BUILD_ID}</span>
       <span data-testid="sw-status">{statusText(status)}</span>

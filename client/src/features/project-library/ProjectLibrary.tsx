@@ -1,17 +1,14 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
-import { LegacyMigrationNotice, peekLegacyNoticeSession, type LegacyPath } from "../../app/LegacyRedirect";
-import {
-  createDiodeSweepTemplate,
-  createDividerTemplate,
-  createLowpassAcTemplate,
-  createRcTemplate,
-} from "../../domain/project/templates";
-import type { Diagnostic, ProjectId } from "../../domain/project/project-v2";
-import LessonCatalog from "../learning/LessonCatalog";
-import ImportProjectDialog from "./ImportProjectDialog";
-import LegacyMigrationCard from "./LegacyMigrationCard";
+import { LegacyMigrationNotice, peekLegacyNoticeSession, type LegacyPath } from "../../app/legacy-notice";
+import type { CircuitProjectV2, Diagnostic, DomainResult, ProjectId } from "../../domain/project/project-v2";
 import { deleteProject, listProjects, saveProject, type ProjectSummary } from "../../storage/indexeddb";
+
+const LessonCatalog = lazy(() => import("../learning/LessonCatalog"));
+const ImportProjectDialog = lazy(() => import("./ImportProjectDialog"));
+const LegacyMigrationCard = lazy(() => import("./LegacyMigrationCard"));
+
+type TemplateFactory = (projectId: string, createdAt: string) => Promise<DomainResult<CircuitProjectV2>>;
 
 export default function ProjectLibrary() {
   const [, navigate] = useLocation();
@@ -46,9 +43,18 @@ export default function ProjectLibrary() {
     };
   }, []);
 
-  async function createFrom(factory: typeof createDividerTemplate) {
+  async function createFrom(name: "divider" | "diode" | "rc" | "lowpass") {
     setBusy(true);
     const createdAt = new Date().toISOString();
+    const templates = await import("../../domain/project/templates");
+    const factory: TemplateFactory =
+      name === "divider"
+        ? templates.createDividerTemplate
+        : name === "diode"
+          ? templates.createDiodeSweepTemplate
+          : name === "rc"
+            ? templates.createRcTemplate
+            : templates.createLowpassAcTemplate;
     const template = await factory(crypto.randomUUID(), createdAt);
     if (!template.ok) {
       setDiagnostics(template.diagnostics);
@@ -93,21 +99,23 @@ export default function ProjectLibrary() {
         <h1>项目库</h1>
         <LegacyMigrationNotice path={legacyNotice} />
         {needProject ? <p data-testid="legacy-need-project">请先选择项目</p> : null}
-        <button type="button" onClick={() => void createFrom(createDividerTemplate)} disabled={busy}>
+        <button type="button" onClick={() => void createFrom("divider")} disabled={busy}>
           新建分压项目
         </button>
-        <button type="button" onClick={() => void createFrom(createDiodeSweepTemplate)} disabled={busy}>
+        <button type="button" onClick={() => void createFrom("diode")} disabled={busy}>
           新建二极管扫描
         </button>
-        <button type="button" onClick={() => void createFrom(createRcTemplate)} disabled={busy}>
+        <button type="button" onClick={() => void createFrom("rc")} disabled={busy}>
           新建RC暂态
         </button>
-        <button type="button" onClick={() => void createFrom(createLowpassAcTemplate)} disabled={busy}>
+        <button type="button" onClick={() => void createFrom("lowpass")} disabled={busy}>
           新建低通交流
         </button>
-        <LessonCatalog />
-        <ImportProjectDialog onAdopted={project => navigate(`/project/${project.id}`)} />
-        <LegacyMigrationCard onAdopted={project => navigate(`/project/${project.id}`)} />
+        <Suspense fallback={null}>
+          <LessonCatalog />
+          <ImportProjectDialog onAdopted={project => navigate(`/project/${project.id}`)} />
+          <LegacyMigrationCard onAdopted={project => navigate(`/project/${project.id}`)} />
+        </Suspense>
         {diagnostics.map(item => (
           <p key={item.code} className="library-diagnostic" data-testid="library-diagnostic">
             {item.code}

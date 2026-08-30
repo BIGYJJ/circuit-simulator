@@ -5,9 +5,14 @@ type Listener = (status: FluxlabServiceWorkerStatus) => void;
 let current: FluxlabServiceWorkerStatus = "installing";
 const listeners = new Set<Listener>();
 let registered = false;
+let registrationRef: ServiceWorkerRegistration | null = null;
 
 export function getFluxlabServiceWorkerStatus() {
   return current;
+}
+
+export function getFluxlabServiceWorkerRegistration() {
+  return registrationRef;
 }
 
 export function subscribeFluxlabServiceWorker(listener: Listener) {
@@ -69,6 +74,7 @@ export function registerFluxlabServiceWorker() {
   void navigator.serviceWorker
     .register("/sw.js", { scope: "/" })
     .then(registration => {
+      registrationRef = registration;
       if (registration.waiting) setStatus("update-waiting");
       else if (registration.installing) watchInstalling(registration.installing);
       else {

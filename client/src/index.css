@@ -135,3 +135,34 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible { outli
 .workspace-properties li { margin: 8px 0; }
 .workspace-properties label { display: grid; gap: 6px; margin: 16px 0 10px; }
 .workspace-properties input { height: 36px; padding: 0 8px; border: 1px solid rgba(235, 244, 224, .14); border-radius: 6px; background: #0b0e0c; color: inherit; }
+.settings-prefs { display: grid; gap: 16px; max-width: 420px; margin-top: 24px; }
+.settings-prefs label { display: grid; gap: 6px; }
+[data-reduced-motion="reduce"] *, [data-reduced-motion="reduce"] *::before, [data-reduced-motion="reduce"] *::after {
+  animation-duration: .01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .01ms !important;
+  scroll-behavior: auto !important;
+}
+.workspace-palette-wrap, .workspace-canvas-wrap { min-height: 0; }
+.workspace-palette-wrap summary, .workspace-canvas-wrap summary { cursor: pointer; padding: 8px 12px; }
+@media (max-width: 767px) {
+  body { overflow: auto; }
+  .workspace-shell { height: auto; min-height: 100vh; }
+  .workspace-body { display: flex; flex-direction: column; }
+  .workspace-canvas-wrap, .workspace-palette-wrap { display: none; }
+  .workspace-rail { border-left: 0; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .workspace-body { grid-template-columns: minmax(0, 1fr) 280px; }
+  .workspace-palette-wrap { display: none; }
+}
+@media (min-width: 1024px) {
+  .workspace-body { grid-template-columns: 168px minmax(0, 1fr) 320px; }
+  .workspace-palette-wrap summary, .workspace-canvas-wrap summary {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}

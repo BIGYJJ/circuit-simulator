@@ -76,7 +76,7 @@ export default function PropertiesPanel({
   }
 
   return (
-    <aside className="workspace-properties">
+    <aside className="workspace-properties" data-testid="workspace-properties">
       <h2>元件</h2>
       <ul>
         {project.schematic.components.map(component => (
