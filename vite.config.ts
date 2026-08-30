@@ -19,6 +19,11 @@ export default defineConfig({
   root: path.resolve(import.meta.dirname, "client"),
   worker: {
     format: "es",
+    rollupOptions: {
+      output: {
+        entryFileNames: "assets/[name]-[hash].js",
+      },
+    },
   },
   assetsInclude: ["**/*.wasm"],
   build: {

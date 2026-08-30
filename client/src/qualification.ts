@@ -1,13 +1,11 @@
-const workerUrl = new URL(
-  "../../vendor/ngspice/qualification/qualification.worker.ts",
-  import.meta.url
-);
-
 const WASM_SHA256 =
   "710da3c95ca4c86ffd87db6189e80b7d56c630801625db3129e203726701e59c";
 
 function createEngineWorker() {
-  return new Worker(workerUrl, { type: "module" });
+  return new Worker(
+    new URL("../../vendor/ngspice/qualification/qualification.worker.ts", import.meta.url),
+    { type: "module" }
+  );
 }
 
 function requestWorker<T>(worker: Worker, message: unknown) {

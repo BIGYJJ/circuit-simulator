@@ -1,5 +1,14 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 10 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Adapter + trust boundary | Pass | `pnpm exec vitest run client/src/simulation/ngspice-adapter.test.ts client/src/simulation/spice-trust-boundary.test.ts` 7/7 |
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Production worker assets | Pass | `qualification.worker-*.js` 7,241.78 kB + `ngspice-*.wasm` 5,347.41 kB；不再复制原始 `.ts` Worker |
+| Three-browser qualification | Pass | Playwright Chromium/Firefox/WebKit `ngspice-qualification.spec.ts` 3 passed (15.9s) against `vite preview` |
+
 ## Task 6 Changed Functionality
 
 | Check | Status | Fresh evidence |

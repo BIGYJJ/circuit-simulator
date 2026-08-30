@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 9 resource limits landed
-- Completed: Task 1–9。
-- In progress: 准备提交 Task 9，随后进入 Task 10。
+- Phase: Task 10 qualified ngspice adapter landed
+- Completed: Task 1–10。
+- In progress: Task 11 RunRecord 状态机。
 - Blocked: 无。
-- Next: Task 10 资格化 ngspice adapter。
+- Next: Task 11 校验向量并持久化可追溯运行记录。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；仿真 Worker、PWA 与完整工作台仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 10 wrapped the qualified ngspice runtime
+
+- Completed: `createNgspiceRuntimeAdapter`/`verifyCompiledModelFiles`/`AdapterRuntimeError`；写入前复验 stored-model 源、哈希与 `model-<64hex>.lib`。`pnpm check` exit 0；adapter + trust-boundary 7/7；三浏览器 `ngspice-qualification.spec.ts` 3/3。
+- Verified: 源哈希不匹配失败且不写 FS；同名同字节只写一次；同名不同字节结构化失败；raw 超限与 write 失败后 `/run` 为空；A/B 隔离无交叉向量；资格页四分析、模型、功率向量、hash/limit 仍通过。
+- Deviation: `new Worker(new URL(..., import.meta.url))` 必须写成单表达式，否则 Vite 7 把资格 Worker 当原始 `.ts` 资源复制（Firefox MIME `video/mp2t`）。`worker.rollupOptions.output.entryFileNames` 固定为 `.js`。信任边界测试同时放在 `tests/` 与 `client/src/simulation/`，因为 Vitest root 是 `client/`。
+- Reason: 生产预览必须发出可执行 Worker/WASM，不能依赖开发服务器的即时转译。
+- Remaining: Task 11–23。
 
 ### 2026-08-31 — Task 9 enforced deterministic simulation resource limits
 

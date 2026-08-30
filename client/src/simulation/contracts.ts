@@ -100,7 +100,7 @@ export interface NgspiceRuntimeAdapter {
   }): Promise<EngineMetadata>;
   runBatch(input: {
     netlistUtf8: Uint8Array;
-    modelFiles: Array<{ generatedName: string; utf8: Uint8Array }>;
+    modelFiles: Array<CompiledModelFile & { source: string }>;
     requestedVectors: string[];
     limits: RuntimeLimits;
   }): Promise<AdapterResult>;
