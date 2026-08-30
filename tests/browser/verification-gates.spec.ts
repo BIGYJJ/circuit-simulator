@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { fillLabeled } from "./support/fill-labeled";
 
 async function waitSaved(page: Page) {
   await expect(page.getByTestId("project-save-state")).toContainText("已保存");
@@ -81,7 +82,7 @@ test("gates nominal and corner evidence without writing forged drafts", async ({
   await expect(page.getByTestId("delivery-gate")).toHaveText("failed", { timeout: 15_000 });
 
   await page.getByRole("button", { name: "选择 R2" }).click();
-  await page.getByLabel("电阻（Ω）").fill("1800");
+  await fillLabeled(page, "电阻（Ω）", "1800");
   await page.getByRole("button", { name: "应用参数" }).click();
   await waitSaved(page);
   await expect(page.getByTestId("delivery-gate")).toHaveText("blocked");

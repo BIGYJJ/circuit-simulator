@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { fillLabeled } from "./support/fill-labeled";
 
 const ALLOWED = /^(?:\/|\/index\.html|\/project\/[^?#]+|\/learn\/[^?#]+|\/settings|\/assets\/[^?#]+|\/vendor\/ngspice\/[^?#]+|\/manifest\.webmanifest|\/sw\.js|\/qualification\.html)$/;
 
@@ -31,12 +32,12 @@ test("runs a real divider and never reuses it after an electrical change", async
   await expect(page.getByText(/ngspice .* SHA-256/)).toBeVisible();
 
   await page.getByRole("button", { name: "选择 R2" }).click();
-  await page.getByLabel("电阻（Ω）").fill("3000");
+  await fillLabeled(page, "电阻（Ω）", "3000");
   await page.getByRole("button", { name: "应用参数" }).click();
   await expect(page.getByTestId("run-status")).toContainText("成功 · 历史结果");
   await expect(page.getByTestId("vout-current-value")).toHaveText("尚无当前结果");
 
-  await page.getByLabel("电阻（Ω）").fill("2000");
+  await fillLabeled(page, "电阻（Ω）", "2000");
   await page.getByRole("button", { name: "应用参数" }).click();
   await waitSaved(page);
   const firstCount = await page.locator("[data-testid^='run-row-']").count();
@@ -88,7 +89,7 @@ test("runs a real divider and never reuses it after an electrical change", async
 
   await page.getByRole("button", { name: "添加电阻" }).click();
   await page.getByRole("button", { name: "选择 R3" }).click();
-  await page.getByLabel("电阻（Ω）").fill("2000");
+  await fillLabeled(page, "电阻（Ω）", "2000");
   await page.getByRole("button", { name: "应用参数" }).click();
   await page.getByRole("button", { name: "添加支路电流探针" }).click();
   await page.locator("[data-testid='pin-R3-p']").click();
@@ -138,7 +139,7 @@ test("runs a real divider and never reuses it after an electrical change", async
 
   const historicalNetlist = await page.getByTestId("captured-netlist").innerText();
   await page.getByRole("button", { name: "选择 R2" }).click();
-  await page.getByLabel("电阻（Ω）").fill("1800");
+  await fillLabeled(page, "电阻（Ω）", "1800");
   await page.getByRole("button", { name: "应用参数" }).click();
   await expect(page.getByTestId("captured-netlist")).toHaveText(historicalNetlist);
 

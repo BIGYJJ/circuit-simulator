@@ -13,11 +13,6 @@ interface PropertiesPanelProps {
   allowUpdateParams?: boolean;
 }
 
-function resistanceOf(component: ComponentInstance | undefined) {
-  if (!component || component.kind !== "resistor") return "";
-  return String(component.params.resistanceOhm);
-}
-
 function compatibleModels(project: CircuitProjectV2, component: ComponentInstance): ModelDefinition[] {
   if (component.kind === "subcircuit") {
     return project.models.filter(item => item.kind === "spice-subckt");
@@ -39,7 +34,6 @@ export default function PropertiesPanel({
 }: PropertiesPanelProps) {
   const selected = project.schematic.components.find(item => item.id === selectedId);
   const selectedWire = project.schematic.wires.find(item => item.id === selectedWireId);
-  const [resistance, setResistance] = useState(resistanceOf(selected));
   const [capacitance, setCapacitance] = useState(selected?.kind === "capacitor" ? String(selected.params.capacitanceF) : "");
   const [dcValue, setDcValue] = useState(
     selected?.kind === "voltageSource"
@@ -54,7 +48,6 @@ export default function PropertiesPanel({
   const [dcError, setDcError] = useState("");
 
   useEffect(() => {
-    setResistance(resistanceOf(selected));
     setCapacitance(selected?.kind === "capacitor" ? String(selected.params.capacitanceF) : "");
     setDcValue(
       selected?.kind === "voltageSource"
@@ -110,14 +103,21 @@ export default function PropertiesPanel({
         <form
           onSubmit={event => {
             event.preventDefault();
-            const value = Number(resistance);
-            if (!Number.isFinite(value)) return;
+            const form = new FormData(event.currentTarget);
+            const value = Number(String(form.get("resistance") ?? "").trim());
+            if (!Number.isFinite(value) || value <= 0) return;
             replace({ ...selected, params: { resistanceOhm: value } });
           }}
         >
           <label>
             电阻（Ω）
-            <input value={resistance} onChange={event => setResistance(event.target.value)} inputMode="decimal" />
+            <input
+              key={`${selected.id}:${selected.params.resistanceOhm}`}
+              name="resistance"
+              defaultValue={String(selected.params.resistanceOhm)}
+              inputMode="decimal"
+              onFocus={event => event.currentTarget.select()}
+            />
           </label>
           <button type="submit" disabled={!allowUpdateParams}>应用参数</button>
         </form>
