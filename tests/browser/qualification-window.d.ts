@@ -27,4 +27,7 @@ interface QualificationResult {
 
 interface Window {
   __qualificationResult: Promise<QualificationResult>;
+  __fluxlabTestDelaySaveMs?: number;
+  __idbGets?: number;
+  __idbGetAlls?: number;
 }

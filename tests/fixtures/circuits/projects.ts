@@ -11,41 +11,41 @@ export function dividerProjectFixture(): CircuitProjectV2 {
     electricalRevision: 1,
     schematic: {
       components: [
-        { id: "comp-v1", refdes: "V1", kind: "voltageSource", params: { dcV: 9 } },
-        { id: "comp-r1", refdes: "R1", kind: "resistor", params: { resistanceOhm: 1000 } },
-        { id: "comp-r2", refdes: "R2", kind: "resistor", params: { resistanceOhm: 2000 } },
-        { id: "comp-gnd", refdes: "GND", kind: "ground", params: {} },
+        { id: "V1", refdes: "V1", kind: "voltageSource", params: { dcV: 9 } },
+        { id: "R1", refdes: "R1", kind: "resistor", params: { resistanceOhm: 1000 } },
+        { id: "R2", refdes: "R2", kind: "resistor", params: { resistanceOhm: 2000 } },
+        { id: "GND", refdes: "GND", kind: "ground", params: {} },
       ],
       wires: [
         {
           id: "wire-v1-r1",
-          from: { componentId: "comp-v1", pin: "p" },
-          to: { componentId: "comp-r1", pin: "p" },
+          from: { componentId: "V1", pin: "p" },
+          to: { componentId: "R1", pin: "p" },
         },
         {
           id: "wire-r1-r2",
-          from: { componentId: "comp-r1", pin: "n" },
-          to: { componentId: "comp-r2", pin: "p" },
+          from: { componentId: "R1", pin: "n" },
+          to: { componentId: "R2", pin: "p" },
           netLabel: "VOUT",
         },
         {
           id: "wire-r2-gnd",
-          from: { componentId: "comp-r2", pin: "n" },
-          to: { componentId: "comp-gnd", pin: "p" },
+          from: { componentId: "R2", pin: "n" },
+          to: { componentId: "GND", pin: "p" },
         },
         {
           id: "wire-v1-gnd",
-          from: { componentId: "comp-v1", pin: "n" },
-          to: { componentId: "comp-gnd", pin: "p" },
+          from: { componentId: "V1", pin: "n" },
+          to: { componentId: "GND", pin: "p" },
         },
       ],
     },
     layout: {
       components: {
-        "comp-v1": { x: 80, y: 40, rotation: 0 },
-        "comp-r1": { x: 80, y: 140, rotation: 0 },
-        "comp-r2": { x: 80, y: 240, rotation: 0 },
-        "comp-gnd": { x: 80, y: 320, rotation: 0 },
+        V1: { x: 80, y: 40, rotation: 0 },
+        R1: { x: 80, y: 140, rotation: 0 },
+        R2: { x: 80, y: 240, rotation: 0 },
+        GND: { x: 80, y: 320, rotation: 0 },
       },
       wireRoutes: {
         "wire-v1-r1": [
@@ -73,7 +73,7 @@ export function dividerProjectFixture(): CircuitProjectV2 {
       {
         id: "probe-vout",
         kind: "node-voltage",
-        node: { componentId: "comp-r1", pin: "n" },
+        node: { componentId: "R1", pin: "n" },
         label: "Vout",
       },
     ],

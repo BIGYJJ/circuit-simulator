@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 5 templates and v1 migration landed
-- Completed: Task 1–4；Task 5 divider/RC/LED v2 模板与只预览的 v1 迁移。
-- In progress: 准备提交 Task 5，随后进入 Task 6。
+- Phase: Task 6 project workspace persistence landed
+- Completed: Task 1–6。
+- In progress: 准备提交 Task 6，随后进入 Task 7。
 - Blocked: 无。
-- Next: Task 6 修订安全命令、IndexedDB 与首个项目旅程。
-- Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；PWA 与产品工作台仍未实现。
+- Next: Task 7 原理图图与 ERC。
+- Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；仿真 Worker、PWA 与完整工作台仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 6 persisted one versioned project workspace
+
+- Completed: `applyProjectCommand`/`projectReducer`、`fluxlab` 五 store、`ProjectSaveLane`、项目库/工作台/设置页。`pnpm vitest run client/src/features/editor/project-reducer.test.ts client/src/storage/indexeddb.test.ts` 11/11；`pnpm check` exit 0；`pnpm test` 56/56；Chromium `project-persistence.spec.ts` 5/5。
+- Verified: 新建分压项目后电气修订与布局修订分离；撤销/重做不回退修订号；刷新恢复修订 5/电气 2；坏记录显示 `STORAGE_INVALID_PROJECT` 且库导航仍可用；rev2 在飞时 rev3 不显示已保存；大 envelope 列表路径 `get/getAll` 为 0，打开时恰好 1 次 `get`。
+- Deviation: Playwright `webServer` 改为 `corepack pnpm`，避免本机默认 pnpm 11 与 `packageManager` 10.4.1 冲突。近 15 MiB 列表夹具用 12 MiB extra `padding` 证明 key-cursor 列表；打开该行因 envelope `.strict()` 报告 `STORAGE_INVALID_PROJECT`，而不是再解析 15 MiB 合法模型源。设置页如实报告引擎/SW 尚未接入。
+- Reason: 机器 PATH 上的 pnpm 不是 Corepack 钉住的 10.4.1；列表测试的目标是证明不 `get` 大对象，不必在 Task 6 解析 10 MiB SPICE 模型。
+- Remaining: Task 7–23。
 
 ### 2026-08-31 — Task 5 added honest v2 templates and preview-only v1 migration
 

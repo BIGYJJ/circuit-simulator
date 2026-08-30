@@ -1,5 +1,15 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 6 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Reducer + IDB unit | Pass | `pnpm vitest run client/src/features/editor/project-reducer.test.ts client/src/storage/indexeddb.test.ts` 11/11 |
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Full unit | Pass | `pnpm test` 56/56 |
+| Persistence journey | Pass | Playwright Chromium `project-persistence.spec.ts` 5 passed (11.1s) against `vite preview` |
+| Settings honesty | Pass | `/settings` 显示 verification/nonReleaseBuild、真实 `storage.estimate`/`persisted`、engine unavailable、SW not installed |
+
 ## Task 2 Changed Functionality
 
 | Check | Status | Fresh evidence |

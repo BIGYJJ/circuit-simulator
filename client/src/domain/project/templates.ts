@@ -28,7 +28,7 @@ export async function createDividerTemplate(projectId: string, createdAt: string
   return finalize({
     schemaVersion: 2,
     id: projectId,
-    title: "9V divider",
+    title: "9V 分压器实验",
     createdAt,
     updatedAt: createdAt,
     revision: 1,

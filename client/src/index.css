@@ -395,3 +395,47 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible { outli
 .template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 12px; }.template-grid button { min-height: 58px; padding: 9px; border: 1px solid rgba(232,244,222,.11); border-radius: 4px; background: #0d110e; color: #9ba79a; cursor: pointer; text-align: left; }.template-grid button:hover, .template-grid button.is-active { border-color: rgba(199,244,61,.55); background: #18200e; }.template-grid b { display: block; color: #d7e0d6; font-size: 10px; }.template-grid button.is-active b { color: var(--lime); }.template-grid small { display: block; margin-top: 5px; color: #717c70; font-size: 9px; }.risk-row { display: grid; grid-template-columns: 33px 1fr; gap: 8px; padding: 10px 0; border-bottom: 1px solid rgba(232,244,222,.07); }.risk-row > span { color: var(--amber); font: 500 10px ui-monospace, "Cascadia Mono", monospace; }.risk-row b { display: block; color: #dbe4da; font-size: 10px; }.risk-row small { color: #80907f; font-size: 9px; }.risk-row p { margin: 4px 0 0; color: #758274; font-size: 9px; line-height: 1.45; }.deliver-card h2 { margin: 15px 0 6px; font-size: 16px; letter-spacing: -.035em; }.deliver-card p { margin: 0; color: #879385; font-size: 10px; line-height: 1.55; }.deliver-card button { width: 100%; height: 36px; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; border: 1px solid rgba(199,244,61,.6); border-radius: 4px; background: transparent; color: var(--lime); cursor: pointer; font-size: 10px; }.deliver-card button:hover { background: #1a220e; }.deliver-card small { display: block; margin-top: 9px; color: #728070; font-size: 9px; line-height: 1.45; }
 @keyframes queue-load { from { transform: translateX(-50%); } to { transform: translateX(30%); } }
 @media (max-width: 1160px) { .ops-shell { min-width: 1080px; }.ops-layout { grid-template-columns: 210px minmax(650px,1fr); }.ops-hero { padding-inline: 20px; }.ops-grid-top { grid-template-columns: 1.1fr .95fr .85fr; }.ops-grid-middle { grid-template-columns: 1.1fr 1fr .85fr; }.ops-grid-bottom { grid-template-columns: 1.1fr 1fr .8fr; } }
+
+.library-page, .settings-page, .workspace-error {
+  min-height: 100vh;
+  overflow: auto;
+  padding: 28px 32px 48px;
+  background: #090b0a;
+}
+.library-header, .workspace-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.library-brand { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: .06em; }
+.library-brand strong { color: #c7f43d; }
+.library-page h1, .settings-page h1, .workspace-topbar h1 { margin: 16px 0; letter-spacing: -.04em; }
+.library-page button, .workspace-topbar button, .workspace-properties button, .settings-page a, .library-page a, .workspace-topbar a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(235, 244, 224, .14);
+  border-radius: 6px;
+  background: #101211;
+  color: #e8eee4;
+  text-decoration: none;
+  cursor: pointer;
+}
+.library-list { padding: 0; list-style: none; }
+.library-list li { display: flex; gap: 12px; align-items: baseline; margin: 10px 0; }
+.library-diagnostic, .workspace-error p { color: #fa785e; }
+.settings-page dl { display: grid; gap: 16px; max-width: 720px; }
+.settings-page dt { color: #949a92; font-size: 12px; }
+.settings-page dd { margin: 4px 0 0; }
+.workspace-shell { width: 100vw; height: 100vh; display: grid; grid-template-rows: auto 1fr; overflow: hidden; background: #090b0a; }
+.workspace-topbar { padding: 12px 18px; border-bottom: 1px solid rgba(235, 244, 224, .11); }
+.workspace-body { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 280px; }
+.workspace-canvas { width: 100%; height: 100%; background: #0b0e0c; outline: none; }
+.workspace-canvas g:focus { outline: 2px solid #c7f43d; }
+.workspace-properties { overflow: auto; padding: 18px; border-left: 1px solid rgba(235, 244, 224, .11); background: #101211; }
+.workspace-properties ul { padding-left: 0; list-style: none; }
+.workspace-properties li { margin: 8px 0; }
+.workspace-properties label { display: grid; gap: 6px; margin: 16px 0 10px; }
+.workspace-properties input { height: 36px; padding: 0 8px; border: 1px solid rgba(235, 244, 224, .14); border-radius: 6px; background: #0b0e0c; color: inherit; }
