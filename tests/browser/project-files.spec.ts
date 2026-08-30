@@ -22,7 +22,7 @@ test("imports and exports trusted files without a business network", async ({ pa
   await page.waitForURL(/\/project\//);
   await waitSaved(page);
   await page.getByRole("button", { name: "运行 DC 工作点" }).click();
-  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前", { timeout: 120_000 });
 
   const [projectDownload] = await Promise.all([
     page.waitForEvent("download"),
@@ -65,7 +65,7 @@ test("imports and exports trusted files without a business network", async ({ pa
   await expect(page.getByTestId("project-revision")).toHaveText(/电气 [2-9]/, { timeout: 15_000 });
   await waitSaved(page);
   await page.getByRole("button", { name: "运行 DC 工作点" }).click();
-  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前", { timeout: 120_000 });
   const mid = await page.evaluate(async () => {
     const id = location.pathname.split("/project/")[1] ?? "";
     const listed = await window.__fluxlabRunStorage!.listRuns(id);

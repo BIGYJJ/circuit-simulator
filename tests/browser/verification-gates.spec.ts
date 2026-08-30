@@ -54,7 +54,7 @@ test("gates nominal and corner evidence without writing forged drafts", async ({
   await waitSaved(page);
 
   await page.getByRole("button", { name: "运行 DC 工作点" }).click();
-  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前", { timeout: 120_000 });
   await expect(page.getByTestId("delivery-gate")).toHaveText("blocked");
   await expect(page.getByTestId("gate-codes")).toContainText("GATE_MISSING_CORNER_RUN");
 

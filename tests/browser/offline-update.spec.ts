@@ -20,7 +20,7 @@ async function createAndRunRc(page: Page) {
   await page.waitForURL(/\/project\//);
   await waitSaved(page);
   await page.getByRole("button", { name: "运行暂态" }).click();
-  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前", { timeout: 120_000 });
 }
 
 test.describe.configure({ timeout: 300_000 });
@@ -43,7 +43,7 @@ test("first install stays offline-capable and V1 to V2 updates stay atomic", asy
     await waitSaved(offlinePage);
     await expect(offlinePage.getByTestId("app-build-id")).toHaveText("pwa-v1");
     await offlinePage.getByRole("button", { name: "运行暂态" }).click();
-    await expect(offlinePage.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
+    await expect(offlinePage.getByTestId("run-status")).toContainText("成功 · 当前", { timeout: 120_000 });
     await offlinePage.close();
     await context.setOffline(false);
 
