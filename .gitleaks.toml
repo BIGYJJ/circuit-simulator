@@ -1,0 +1,10 @@
+title = "FLUXLAB"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Documented SHA-256 provenance wording in the implementation plan, not a credential"
+paths = [
+  '''docs/2026-08-28-circuit-simulator-modernization/03-plan\.md''',
+]
