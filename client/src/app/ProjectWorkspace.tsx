@@ -157,6 +157,7 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
   const laneRef = useRef<ReturnType<typeof createProjectSaveLane> | null>(null);
   const allowEnqueue = useRef(false);
   const controllerRef = useRef<SimulationController | null>(null);
+  const cancelInFlight = useRef<Promise<unknown> | null>(null);
   const saveBusy = saveState?.status === "saving" || saveState?.status === "dirty";
   const selectedAnalysis = editor.present.analyses.find(item => item.id === analysisId);
 
@@ -362,12 +363,25 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
     dispatch({ type: "command", command, changedAt: new Date().toISOString() });
   }
 
+  function requestCancel(reason: "user" | "project-changed") {
+    setRunning(false);
+    setCancelled(true);
+    setSelectedRun(null);
+    const done = controllerRef.current?.cancel(reason) ?? Promise.resolve();
+    cancelInFlight.current = done;
+    void done.finally(() => {
+      if (cancelInFlight.current === done) cancelInFlight.current = null;
+    });
+    return done;
+  }
+
   async function onRun() {
     if (!actionAllowed("analysis:run")) {
       setRunDiagnostics([{ severity: "error", code: "LESSON_ACTION_BLOCKED", message: "running is outside the current guided step", blocksRun: false }]);
       return;
     }
     if (!analysisId || !controllerRef.current) return;
+    if (cancelInFlight.current) await cancelInFlight.current;
     setRunning(true);
     setCancelled(false);
     setRunDiagnostics([]);
@@ -538,10 +552,8 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
             allowRun={actionAllowed("analysis:run")}
             onRun={() => void onRun()}
             onCancel={() => {
-              void controllerRef.current?.cancel("user").then(() => {
-                setRunning(false);
-                setCancelled(true);
-                setSelectedRun(null);
+              void requestCancel("user").then(() => {
+                void refreshRuns(undefined, analysisId);
               });
             }}
           />
@@ -567,10 +579,9 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
             onRunSeries={() => void onRunSeries()}
             onCancelSeries={() => {
               stopSeries.current = true;
-              void controllerRef.current?.cancel("user").then(() => {
-                setRunning(false);
-                setSeriesBusy(false);
-                setCancelled(true);
+              setSeriesBusy(false);
+              void requestCancel("user").then(() => {
+                void refreshRuns(undefined, analysisId);
               });
             }}
             onReevaluate={() => {
