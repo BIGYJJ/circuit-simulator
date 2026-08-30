@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { fillLabeled } from "./support/fill-labeled";
 
 async function openDatabase(page: Page) {
   return page.evaluate(async () => {
@@ -28,7 +29,7 @@ test("edits electrical and layout state, undo/redoes, and reloads one project", 
   await expect(page.getByTestId("project-revision")).toHaveText("修订 1 / 电气 1");
 
   await page.getByRole("button", { name: "选择 R2" }).click();
-  await page.getByLabel("电阻（Ω）").fill("3000");
+  await fillLabeled(page, "电阻（Ω）", "3000");
   await page.getByRole("button", { name: "应用参数" }).click();
   await expect(page.getByTestId("project-revision")).toHaveText("修订 2 / 电气 2");
 
@@ -92,7 +93,7 @@ test("coalesces a later revision while an earlier save is delayed", async ({ pag
     window.__fluxlabTestDelaySaveMs = 800;
   });
   await page.getByRole("button", { name: "选择 R2" }).click();
-  await page.getByLabel("电阻（Ω）").fill("3000");
+  await fillLabeled(page, "电阻（Ω）", "3000");
   await page.getByRole("button", { name: "应用参数" }).click();
   await expect(page.getByTestId("project-revision")).toHaveText("修订 2 / 电气 2");
   await page.getByTestId("component-R2").focus();
@@ -115,11 +116,11 @@ test("project library lists a large envelope from key cursors only", async ({ pa
     const get = proto.get;
     const getAll = proto.getAll;
     proto.get = function patchedGet(...args) {
-      window.__idbGets = (window.__idbGets ?? 0) + 1;
+      if (this.name === "projects") window.__idbGets = (window.__idbGets ?? 0) + 1;
       return get.apply(this, args);
     };
     proto.getAll = function patchedGetAll(...args) {
-      window.__idbGetAlls = (window.__idbGetAlls ?? 0) + 1;
+      if (this.name === "projects") window.__idbGetAlls = (window.__idbGetAlls ?? 0) + 1;
       return getAll.apply(this, args);
     };
   });

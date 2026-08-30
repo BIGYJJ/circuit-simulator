@@ -51,7 +51,6 @@ const ComponentGlyph = memo(function ComponentGlyph({
   pendingPin,
   onSelect,
   onPin,
-  onNudge,
   onMoveTo,
 }: {
   component: ComponentInstance;
@@ -61,7 +60,6 @@ const ComponentGlyph = memo(function ComponentGlyph({
   pendingPin: string | null;
   onSelect: (id: ComponentId) => void;
   onPin: (endpoint: WireEndpoint) => void;
-  onNudge: (id: ComponentId, dx: number, dy: number) => void;
   onMoveTo: (id: ComponentId, nextX: number, nextY: number) => void;
 }) {
   const pins = component.kind === "subcircuit" ? component.orderedPins : getStaticComponentDefinition(component.kind).pins;
@@ -90,25 +88,6 @@ const ComponentGlyph = memo(function ComponentGlyph({
           onMoveTo(component.id, ox + event.clientX - cx, oy + event.clientY - cy);
         }
         delete el.dataset.drag;
-      }}
-      onKeyDown={event => {
-        if (!event.altKey) return;
-        if (event.key === "ArrowRight") {
-          event.preventDefault();
-          onNudge(component.id, 20, 0);
-        }
-        if (event.key === "ArrowLeft") {
-          event.preventDefault();
-          onNudge(component.id, -20, 0);
-        }
-        if (event.key === "ArrowUp") {
-          event.preventDefault();
-          onNudge(component.id, 0, -20);
-        }
-        if (event.key === "ArrowDown") {
-          event.preventDefault();
-          onNudge(component.id, 0, 20);
-        }
       }}
     >
       <rect
@@ -156,16 +135,6 @@ export default function SchematicCanvas({
   onCommand,
 }: SchematicCanvasProps) {
   const [pending, setPending] = useState<WireEndpoint | null>(null);
-
-  function moveComponent(componentId: ComponentId, dx: number, dy: number) {
-    const current = project.layout.components[componentId];
-    if (!current || (dx === 0 && dy === 0)) return;
-    onCommand({
-      type: "layout/componentSet",
-      componentId,
-      layout: { ...current, x: current.x + dx, y: current.y + dy },
-    });
-  }
 
   function clickPin(endpoint: WireEndpoint) {
     onSelect(endpoint.componentId);
@@ -241,7 +210,6 @@ export default function SchematicCanvas({
               onSelectWire(null);
             }}
             onPin={clickPin}
-            onNudge={moveComponent}
             onMoveTo={(id, nextX, nextY) => {
               const current = project.layout.components[id];
               if (!current || (current.x === nextX && current.y === nextY)) return;
