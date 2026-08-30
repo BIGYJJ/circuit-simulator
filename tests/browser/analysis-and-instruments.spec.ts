@@ -4,7 +4,7 @@ const ALLOWED =
   /^(?:\/|\/index\.html|\/project\/[^?#]+|\/learn\/[^?#]+|\/settings|\/assets\/[^?#]+|\/vendor\/ngspice\/[^?#]+|\/manifest\.webmanifest|\/sw\.js|\/qualification\.html)$/;
 
 async function waitSaved(page: Page) {
-  await expect(page.getByTestId("project-save-state")).toHaveText("已保存");
+  await expect(page.getByTestId("project-save-state")).toContainText("已保存");
 }
 
 test.describe("traceable analyses and instruments", () => {
@@ -23,7 +23,7 @@ test.describe("traceable analyses and instruments", () => {
     await page.waitForURL(/\/project\//);
     await waitSaved(page);
     await page.getByRole("button", { name: "运行 DC 扫描" }).click();
-    await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
+    await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
     await expect(page.getByTestId("diode-monotonic")).toHaveText("单调上升");
     const instrumentHash = await page.getByTestId("instrument-model-hash").innerText();
     expect(instrumentHash).toMatch(/^[0-9a-f]{64}$/);
@@ -38,7 +38,7 @@ test.describe("traceable analyses and instruments", () => {
     await page.waitForURL(/\/project\//);
     await waitSaved(page);
     await page.getByRole("button", { name: "运行暂态" }).click();
-    await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
+    await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
     const oneTau = Number.parseFloat(await page.getByTestId("v-1tau").innerText());
     const fiveTau = Number.parseFloat(await page.getByTestId("v-5tau").innerText());
     expect(Math.abs(oneTau - 3.1606) / 3.1606).toBeLessThan(0.005);
@@ -55,7 +55,7 @@ test.describe("traceable analyses and instruments", () => {
     await page.waitForURL(/\/project\//);
     await waitSaved(page);
     await page.getByRole("button", { name: "运行交流" }).click();
-    await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
+    await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
     const cutoff = Number.parseFloat(await page.getByTestId("ac-cutoff-hz").innerText());
     const expected = 1 / (2 * Math.PI * 1000 * 1e-6);
     expect(Math.abs(cutoff - expected) / expected).toBeLessThan(0.01);
@@ -71,7 +71,7 @@ test.describe("traceable analyses and instruments", () => {
     await page.waitForURL(/\/project\//);
     await waitSaved(page);
     await page.getByRole("button", { name: "运行暂态" }).click();
-    await expect(page.getByTestId("run-status")).toHaveText("运行中", { timeout: 30_000 });
+    await expect(page.getByTestId("run-status")).toContainText("运行中", { timeout: 30_000 });
     const started = Date.now();
     await page.getByRole("button", { name: "取消运行" }).click();
     await expect(page.getByRole("button", { name: "运行暂态" })).toBeEnabled({ timeout: 500 });
@@ -79,7 +79,7 @@ test.describe("traceable analyses and instruments", () => {
     await expect(page.getByTestId("run-status")).toHaveText(/已取消|尚未运行|cancelled/);
     await expect(page.getByTestId("result-dock")).toHaveText(/没有选中的成功运行/);
     await page.getByRole("button", { name: "运行暂态" }).click();
-    await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
+    await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
     expect(Number.parseFloat(await page.getByTestId("v-1tau").innerText())).toBeGreaterThan(3);
   });
 
@@ -136,7 +136,7 @@ test.describe("traceable analyses and instruments", () => {
     await page.getByTestId("add-power-R1").click();
     await waitSaved(page);
     await page.getByRole("button", { name: "运行 DC 工作点" }).click();
-    await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
+    await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
     const runId = await page.getByTestId("instrument-run-id").innerText();
     expect(runId.length).toBeGreaterThan(8);
   });

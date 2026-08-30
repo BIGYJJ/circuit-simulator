@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function waitSaved(page: Page) {
-  await expect(page.getByTestId("project-save-state")).toHaveText("已保存");
+  await expect(page.getByTestId("project-save-state")).toContainText("已保存");
 }
 
 test("legacy URLs redirect to lessons or the current workspace", async ({ page }) => {

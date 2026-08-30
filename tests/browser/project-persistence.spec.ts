@@ -98,7 +98,7 @@ test("coalesces a later revision while an earlier save is delayed", async ({ pag
   await page.getByTestId("component-R2").focus();
   await page.keyboard.press("Alt+ArrowRight");
   await expect(page.getByTestId("project-revision")).toHaveText("修订 3 / 电气 2");
-  await expect(page.getByTestId("project-save-state")).not.toHaveText("已保存");
+  await expect(page.getByTestId("project-save-state")).not.toContainText("已保存");
   await expect(page.getByText("已保存")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByTestId("project-revision")).toHaveText("修订 3 / 电气 2");
   await page.reload();

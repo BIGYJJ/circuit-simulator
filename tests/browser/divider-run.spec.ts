@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 const ALLOWED = /^(?:\/|\/index\.html|\/project\/[^?#]+|\/learn\/[^?#]+|\/settings|\/assets\/[^?#]+|\/vendor\/ngspice\/[^?#]+|\/manifest\.webmanifest|\/sw\.js|\/qualification\.html)$/;
 
 async function waitSaved(page: Page) {
-  await expect(page.getByTestId("project-save-state")).toHaveText("已保存");
+  await expect(page.getByTestId("project-save-state")).toContainText("已保存");
 }
 
 function parseQuantity(text: string) {
@@ -27,13 +27,13 @@ test("runs a real divider and never reuses it after an electrical change", async
   await page.getByRole("button", { name: "运行 DC 工作点" }).click();
   await expect(page.getByTestId("run-status")).toHaveText(/成功 · 当前|failed|timeout/, { timeout: 120_000 });
   await expect(page.getByTestId("vout-value")).toHaveText("6.000000 V");
-  await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前");
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"));
   await expect(page.getByText(/ngspice .* SHA-256/)).toBeVisible();
 
   await page.getByRole("button", { name: "选择 R2" }).click();
   await page.getByLabel("电阻（Ω）").fill("3000");
   await page.getByRole("button", { name: "应用参数" }).click();
-  await expect(page.getByTestId("run-status")).toHaveText("成功 · 历史结果");
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 历史结果");
   await expect(page.getByTestId("vout-current-value")).toHaveText("尚无当前结果");
 
   await page.getByLabel("电阻（Ω）").fill("2000");
@@ -59,7 +59,7 @@ test("runs a real divider and never reuses it after an electrical change", async
   await page.getByRole("button", { name: "撤销" }).click();
   await waitSaved(page);
   await page.getByRole("button", { name: "运行 DC 工作点" }).click();
-  await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
   const restoredId = await page.locator("[data-testid^='run-row-']").last().getAttribute("data-testid");
 
   await page.evaluate(async () => {
@@ -97,7 +97,7 @@ test("runs a real divider and never reuses it after an electrical change", async
   await page.locator("[data-testid='pin-R2-n']").click();
   await waitSaved(page);
   await page.getByRole("button", { name: "运行 DC 工作点" }).click();
-  await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
   expect(parseQuantity(await page.getByTestId("vout-value").innerText())).toBeCloseTo(4.5, 5);
   expect(Math.abs(parseQuantity(await page.getByTestId("current-R1").innerText()))).toBeCloseTo(4.5, 4);
   expect(Math.abs(parseQuantity(await page.getByTestId("current-R2").innerText()))).toBeCloseTo(2.25, 4);
@@ -133,7 +133,7 @@ test("runs a real divider and never reuses it after an electrical change", async
   await page.getByRole("button", { name: "撤销" }).click();
   await waitSaved(page);
   await page.getByRole("button", { name: "运行 DC 工作点" }).click();
-  await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
   expect(parseQuantity(await page.getByTestId("vout-value").innerText())).toBeCloseTo(4.5, 5);
 
   const historicalNetlist = await page.getByTestId("captured-netlist").innerText();

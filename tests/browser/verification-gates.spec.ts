@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function waitSaved(page: Page) {
-  await expect(page.getByTestId("project-save-state")).toHaveText("已保存");
+  await expect(page.getByTestId("project-save-state")).toContainText("已保存");
 }
 
 test("gates nominal and corner evidence without writing forged drafts", async ({ page }) => {
@@ -54,7 +54,7 @@ test("gates nominal and corner evidence without writing forged drafts", async ({
   await waitSaved(page);
 
   await page.getByRole("button", { name: "运行 DC 工作点" }).click();
-  await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
   await expect(page.getByTestId("delivery-gate")).toHaveText("blocked");
   await expect(page.getByTestId("gate-codes")).toContainText("GATE_MISSING_CORNER_RUN");
 

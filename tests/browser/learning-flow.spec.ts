@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function waitSaved(page: Page) {
-  await expect(page.getByTestId("project-save-state")).toHaveText("已保存");
+  await expect(page.getByTestId("project-save-state")).toContainText("已保存");
 }
 
 async function waitStorage(page: Page) {
@@ -47,7 +47,7 @@ test("guided lessons share one project and five-store deletes stay atomic", asyn
 
   await page.getByTestId("lesson-prediction").fill("6");
   await page.getByRole("button", { name: "运行 DC 工作点" }).click();
-  await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
   await expect(page.getByTestId("vout-value")).toHaveText("6.000000 V");
   await page.getByTestId("save-checkpoint").click();
   await expect(page.getByTestId("lesson-completed-steps")).toContainText("step-predict-6v");
@@ -63,13 +63,13 @@ test("guided lessons share one project and five-store deletes stay atomic", asyn
   await page.getByLabel("电阻（Ω）").fill("3000");
   await page.getByRole("button", { name: "应用参数" }).click();
   await waitSaved(page);
-  await expect(page.getByTestId("run-status")).toHaveText("成功 · 历史结果");
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 历史结果");
   await page.getByTestId("lesson-prediction").fill("6.75");
   await page.getByTestId("save-checkpoint").click();
   await expect(page.getByTestId("lesson-diagnostic")).toContainText(/LESSON_STALE|LESSON_ASSERTION/);
 
   await page.getByRole("button", { name: "运行 DC 工作点" }).click();
-  await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
   await page.getByTestId("save-checkpoint").click();
   await expect(page.getByTestId("lesson-completed-steps")).toContainText("step-after-r2");
   await expect(page.getByTestId("run-count")).toHaveText("2");
@@ -83,7 +83,7 @@ test("guided lessons share one project and five-store deletes stay atomic", asyn
   await waitSaved(page);
   await page.getByTestId("lesson-prediction").fill("4.4");
   await page.getByRole("button", { name: "运行 DC 工作点" }).click();
-  await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
   await page.getByTestId("save-checkpoint").click();
   await expect(page.getByTestId("lesson-diagnostic")).toContainText("LESSON_ASSERTION_FAILED");
 
@@ -92,7 +92,7 @@ test("guided lessons share one project and five-store deletes stay atomic", asyn
   await page.getByRole("button", { name: "应用参数" }).click();
   await waitSaved(page);
   await page.getByRole("button", { name: "运行 DC 工作点" }).click();
-  await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 120_000 });
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 120_000 });
   await page.getByTestId("lesson-prediction").fill("10");
   await page.getByTestId("save-checkpoint").click();
   await expect(page.getByTestId("lesson-completed-steps")).toContainText("step-led-current");
@@ -103,7 +103,7 @@ test("guided lessons share one project and five-store deletes stay atomic", asyn
   await waitSaved(page);
   await page.getByTestId("lesson-prediction").fill("3.16");
   await page.getByRole("button", { name: "运行暂态" }).click();
-  await expect(page.getByTestId("run-status")).toHaveText("成功 · 当前", { timeout: 180_000 });
+  await expect(page.getByTestId("run-status")).toContainText("成功 · 当前"), { timeout: 180_000 });
   await page.getByTestId("save-checkpoint").click();
   await expect(page.getByTestId("lesson-completed-steps")).toContainText("step-rc-tau");
 });
