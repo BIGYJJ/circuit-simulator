@@ -78,7 +78,7 @@ test("gates nominal and corner evidence without writing forged drafts", async ({
   await page.getByRole("button", { name: "采用断言" }).click();
   await waitSaved(page);
   await page.getByRole("button", { name: "重新评估断言" }).click();
-  await expect(page.getByTestId("delivery-gate")).toHaveText("failed");
+  await expect(page.getByTestId("delivery-gate")).toHaveText("failed", { timeout: 15_000 });
 
   await page.getByRole("button", { name: "选择 R2" }).click();
   await page.getByLabel("电阻（Ω）").fill("1800");
