@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 7 schematic graph and ERC landed
-- Completed: Task 1–7。
-- In progress: 准备提交 Task 7，随后进入 Task 8。
+- Phase: Task 8 deterministic compiler landed
+- Completed: Task 1–8。
+- In progress: 准备提交 Task 8，随后进入 Task 9。
 - Blocked: 无。
-- Next: Task 8 确定性网表编译。
+- Next: Task 9 运行资源估计。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；仿真 Worker、PWA 与完整工作台仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 8 compiled deterministic SPICE netlists
+
+- Completed: `compileNetlist`/`applyCorner`/`hashAnalysisDefinition`；四份 LF golden。`pnpm exec vitest run client/src/simulation/compile-netlist.test.ts` 5/5；`pnpm check` exit 0；`pnpm test` 69/69。
+- Verified: 打乱数组/改标题/改布局后 netlist、hash、source map、vector plan 一致；无 DC 的 PULSE(initial=1) 与显式 DC 0 网表不同；冲突标签、缺模型和 AC 功率探针阻断且无 CompileResult。
+- Deviation: `.save` 使用图节点名与合格矩阵 raw 名；DC sweep 轴名为源 refdes 小写。未在 Task 8 覆盖全部 D/Q/M/S/X 波形黄金文件，发射路径已实现。
+- Reason: 计划要求四份分析族 golden 先闭合确定性；其余器件由发射函数与后续运行任务覆盖。
+- Remaining: Task 9–23。
 
 ### 2026-08-31 — Task 7 built schematic graph and ERC diagnostics
 

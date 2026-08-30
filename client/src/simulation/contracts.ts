@@ -4,7 +4,9 @@ import type {
   AppliedCorner,
   AssertionDefinition,
   AxisUnit,
+  CircuitProjectV2,
   ComponentId,
+  CornerDefinition,
   Diagnostic,
   ModelId,
   ProbeId,
@@ -83,6 +85,16 @@ export interface NgspiceRuntimeAdapter {
     limits: RuntimeLimits;
   }): Promise<AdapterResult>;
   dispose(): Promise<void>;
+}
+
+export interface CompileRequest {
+  project: CircuitProjectV2;
+  analysis: AnalysisDefinition;
+  corner?: {
+    definition: CornerDefinition;
+    ordinal: number;
+    total: number;
+  };
 }
 
 export interface CompiledModelFile {

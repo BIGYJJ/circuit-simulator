@@ -143,6 +143,157 @@ export function disconnectedSingletonProjectFixture(): CircuitProjectV2 {
   return project;
 }
 
+export function shuffledDividerFixture(): CircuitProjectV2 {
+  const project = cloneDivider();
+  project.title = "shuffled divider";
+  project.schematic.components.reverse();
+  project.schematic.wires.reverse();
+  project.layout.components.R1 = { x: 12, y: 34, rotation: 90 };
+  return project;
+}
+
+export function dividerAnalysis() {
+  return dividerProjectFixture().analyses[0]!;
+}
+
+export function rcTransientProjectFixture(): CircuitProjectV2 {
+  return {
+    schemaVersion: 2,
+    id: "proj-rc-v2",
+    title: "RC transient",
+    createdAt: "2026-08-31T00:00:00.000Z",
+    updatedAt: "2026-08-31T00:00:00.000Z",
+    revision: 1,
+    electricalRevision: 1,
+    schematic: {
+      components: [
+        {
+          id: "V1",
+          refdes: "V1",
+          kind: "voltageSource",
+          params: {
+            dcV: 0,
+            transient: { kind: "pulse", initialV: 0, pulsedV: 5, delayS: 0, riseS: 1e-9, fallS: 1e-9, widthS: 10, periodS: 20 },
+          },
+        },
+        { id: "R1", refdes: "R1", kind: "resistor", params: { resistanceOhm: 10000 } },
+        { id: "C1", refdes: "C1", kind: "capacitor", params: { capacitanceF: 100e-6 } },
+        { id: "GND", refdes: "GND", kind: "ground", params: {} },
+      ],
+      wires: [
+        { id: "w1", from: { componentId: "V1", pin: "p" }, to: { componentId: "R1", pin: "p" } },
+        { id: "w2", from: { componentId: "R1", pin: "n" }, to: { componentId: "C1", pin: "p" } },
+        { id: "w3", from: { componentId: "C1", pin: "n" }, to: { componentId: "GND", pin: "p" } },
+        { id: "w4", from: { componentId: "GND", pin: "p" }, to: { componentId: "V1", pin: "n" } },
+      ],
+    },
+    layout: { components: {}, wireRoutes: {} },
+    models: [],
+    analyses: [{ id: "an-tran", name: "Transient", kind: "transient", stepS: 0.01, stopS: 5, enabledProbes: ["pr-vcap"] }],
+    probes: [{ id: "pr-vcap", kind: "node-voltage", node: { componentId: "C1", pin: "p" }, label: "Vcap" }],
+    assertions: [],
+    corners: [],
+    notes: [],
+  };
+}
+
+export function diodeSweepProjectFixture(): CircuitProjectV2 {
+  return {
+    schemaVersion: 2,
+    id: "proj-diode-sweep",
+    title: "diode sweep",
+    createdAt: "2026-08-31T00:00:00.000Z",
+    updatedAt: "2026-08-31T00:00:00.000Z",
+    revision: 1,
+    electricalRevision: 1,
+    schematic: {
+      components: [
+        { id: "V1", refdes: "V1", kind: "voltageSource", params: { dcV: 0 } },
+        { id: "D1", refdes: "D1", kind: "diode", params: { area: 1 }, modelRef: "dmod" },
+        { id: "GND", refdes: "GND", kind: "ground", params: {} },
+      ],
+      wires: [
+        { id: "w1", from: { componentId: "V1", pin: "p" }, to: { componentId: "D1", pin: "p" } },
+        { id: "w2", from: { componentId: "D1", pin: "n" }, to: { componentId: "GND", pin: "p" } },
+        { id: "w3", from: { componentId: "GND", pin: "p" }, to: { componentId: "V1", pin: "n" } },
+      ],
+    },
+    layout: { components: {}, wireRoutes: {} },
+    models: [
+      {
+        id: "dmod",
+        displayName: "DMOD",
+        source: ".model DMOD D(IS=1e-14 N=1)\n",
+        sha256: "a4554d8c891cff561a2833915ef6bb96d3f324ab31ce68600931a61b8b867d59",
+        origin: "user-import",
+        kind: "spice-model",
+        modelName: "DMOD",
+        deviceFamily: "diode",
+      },
+    ],
+    analyses: [
+      {
+        id: "an-dc",
+        name: "Diode sweep",
+        kind: "dc-sweep",
+        sweep: { sourceComponentId: "V1", quantity: "voltage", startV: 0.4, stopV: 0.8, stepV: 0.01 },
+        enabledProbes: ["pr-pd"],
+      },
+    ],
+    probes: [{ id: "pr-pd", kind: "device-power", componentId: "D1", label: "P(D1)" }],
+    assertions: [],
+    corners: [],
+    notes: [],
+  };
+}
+
+export function lowpassAcProjectFixture(): CircuitProjectV2 {
+  return {
+    schemaVersion: 2,
+    id: "proj-lowpass-ac",
+    title: "RC lowpass",
+    createdAt: "2026-08-31T00:00:00.000Z",
+    updatedAt: "2026-08-31T00:00:00.000Z",
+    revision: 1,
+    electricalRevision: 1,
+    schematic: {
+      components: [
+        { id: "V1", refdes: "V1", kind: "voltageSource", params: { dcV: 0, ac: { magnitudeV: 1, phaseDeg: 0 } } },
+        { id: "R1", refdes: "R1", kind: "resistor", params: { resistanceOhm: 1000 } },
+        { id: "C1", refdes: "C1", kind: "capacitor", params: { capacitanceF: 1e-6 } },
+        { id: "GND", refdes: "GND", kind: "ground", params: {} },
+      ],
+      wires: [
+        { id: "w1", from: { componentId: "V1", pin: "p" }, to: { componentId: "R1", pin: "p" } },
+        { id: "w2", from: { componentId: "R1", pin: "n" }, to: { componentId: "C1", pin: "p" } },
+        { id: "w3", from: { componentId: "C1", pin: "n" }, to: { componentId: "GND", pin: "p" } },
+        { id: "w4", from: { componentId: "GND", pin: "p" }, to: { componentId: "V1", pin: "n" } },
+      ],
+    },
+    layout: { components: {}, wireRoutes: {} },
+    models: [],
+    analyses: [
+      { id: "an-ac", name: "AC", kind: "ac", scale: "dec", pointsPerInterval: 20, startHz: 1, stopHz: 1e5, enabledProbes: ["pr-vout"] },
+    ],
+    probes: [{ id: "pr-vout", kind: "node-voltage", node: { componentId: "C1", pin: "p" }, label: "Vout" }],
+    assertions: [],
+    corners: [],
+    notes: [],
+  };
+}
+
+export function pulseNoDcProjectFixture(): CircuitProjectV2 {
+  const project = rcTransientProjectFixture();
+  project.id = "proj-pulse-nodc";
+  const source = project.schematic.components.find(item => item.id === "V1");
+  if (source && source.kind === "voltageSource") {
+    source.params = {
+      transient: { kind: "pulse", initialV: 1, pulsedV: 5, delayS: 0, riseS: 1e-9, fallS: 1e-9, widthS: 10, periodS: 20 },
+    };
+  }
+  return project;
+}
+
 export function voltageSourceShortProjectFixture(): CircuitProjectV2 {
   const project = cloneDivider();
   project.id = "proj-vshort";
