@@ -438,7 +438,14 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible { outli
 .workspace-palette { border-right: 1px solid rgba(235, 244, 224, .11); }
 .workspace-rail { border-left: 1px solid rgba(235, 244, 224, .11); }
 .workspace-palette button, .workspace-rail button { margin: 0 0 8px; }
-.workspace-muted, .workspace-run-controls p, .workspace-diagnostics p, .workspace-provenance p { color: #b7beb4; font-size: 13px; }
+.workspace-muted, .workspace-run-controls p, .workspace-diagnostics p, .workspace-provenance p, .workspace-analysis p, .workspace-probes p { color: #b7beb4; font-size: 13px; }
+.workspace-analysis label, .workspace-models label { display: grid; gap: 6px; margin: 10px 0; }
+.workspace-analysis input, .workspace-analysis select, .workspace-models input, .workspace-models textarea, .workspace-properties select {
+  min-height: 32px; padding: 4px 8px; border: 1px solid rgba(235, 244, 224, .14); border-radius: 6px; background: #0b0e0c; color: inherit;
+}
+.workspace-models textarea { width: 100%; }
+[data-testid="result-dock"] table { width: 100%; font-size: 12px; }
+[data-testid="result-dock"] svg { width: 100%; background: #0b0e0c; }
 .workspace-provenance pre { max-height: 180px; overflow: auto; font-size: 11px; white-space: pre-wrap; }
 .workspace-canvas { width: 100%; height: 100%; background: #0b0e0c; outline: none; }
 .workspace-canvas g:focus { outline: 2px solid #c7f43d; }

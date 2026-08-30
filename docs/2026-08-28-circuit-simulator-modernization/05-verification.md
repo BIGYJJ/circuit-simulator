@@ -1,5 +1,13 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 15 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Compile / result parser / estimator | Pass | vitest 18/18 |
+| Analyses + instruments journey | Pass | Playwright Chromium `analysis-and-instruments.spec.ts` 6 passed (14.0s) |
+
 ## Task 14 Changed Functionality
 
 | Check | Status | Fresh evidence |

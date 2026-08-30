@@ -7,6 +7,7 @@ interface RunControlsProps {
   running: boolean;
   saveBusy: boolean;
   blockers: Diagnostic[];
+  runLabel: string;
   onRun: () => void;
   onCancel: () => void;
 }
@@ -18,6 +19,7 @@ export default function RunControls({
   running,
   saveBusy,
   blockers,
+  runLabel,
   onRun,
   onCancel,
 }: RunControlsProps) {
@@ -26,7 +28,7 @@ export default function RunControls({
   return (
     <section className="workspace-run-controls" aria-label="运行">
       <button type="button" onClick={onRun} disabled={disabled}>
-        运行 DC 工作点
+        {runLabel}
       </button>
       <button type="button" onClick={onCancel} disabled={!running}>
         取消运行

@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { createDividerTemplate } from "../../domain/project/templates";
+import {
+  createDiodeSweepTemplate,
+  createDividerTemplate,
+  createLowpassAcTemplate,
+  createRcTemplate,
+} from "../../domain/project/templates";
 import type { Diagnostic, ProjectId } from "../../domain/project/project-v2";
 import { deleteProject, listProjects, saveProject, type ProjectSummary } from "../../storage/indexeddb";
 
@@ -29,10 +34,10 @@ export default function ProjectLibrary() {
     };
   }, []);
 
-  async function createDivider() {
+  async function createFrom(factory: typeof createDividerTemplate) {
     setBusy(true);
     const createdAt = new Date().toISOString();
-    const template = await createDividerTemplate(crypto.randomUUID(), createdAt);
+    const template = await factory(crypto.randomUUID(), createdAt);
     if (!template.ok) {
       setDiagnostics(template.diagnostics);
       setBusy(false);
@@ -74,8 +79,17 @@ export default function ProjectLibrary() {
       </header>
       <section>
         <h1>项目库</h1>
-        <button type="button" onClick={() => void createDivider()} disabled={busy}>
+        <button type="button" onClick={() => void createFrom(createDividerTemplate)} disabled={busy}>
           新建分压项目
+        </button>
+        <button type="button" onClick={() => void createFrom(createDiodeSweepTemplate)} disabled={busy}>
+          新建二极管扫描
+        </button>
+        <button type="button" onClick={() => void createFrom(createRcTemplate)} disabled={busy}>
+          新建RC暂态
+        </button>
+        <button type="button" onClick={() => void createFrom(createLowpassAcTemplate)} disabled={busy}>
+          新建低通交流
         </button>
         {diagnostics.map(item => (
           <p key={item.code} className="library-diagnostic" data-testid="library-diagnostic">

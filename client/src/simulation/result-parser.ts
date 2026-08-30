@@ -122,14 +122,46 @@ export async function parseAdapterResult(input: {
   const required = input.run.compiled.requestedRawVectors;
   const seen = new Set<string>();
   const byName = new Map<string, AdapterResult["vectors"][number]>();
+  const compiledAxis = (input.run.compiled.vectorPlan[0]?.axisName ?? "").toLowerCase();
+  function register(name: string, vector: AdapterResult["vectors"][number]) {
+    if (!name) return;
+    if (!byName.has(name)) byName.set(name, vector);
+  }
   for (const vector of input.adapterResult.vectors) {
     const name = vector.name.toLowerCase();
     if (seen.has(name)) return fail("RESULT_DUPLICATE_RAW", "adapter returned a duplicate raw vector");
     seen.add(name);
-    byName.set(name, vector);
+    register(name, vector);
+    const wrapped = /^i\((@.+)\)$/.exec(name);
+    if (wrapped?.[1]) register(wrapped[1], vector);
+    const sourceCurrent = /^i\(([a-z][a-z0-9_]+)\)$/.exec(name);
+    if (sourceCurrent?.[1]) register(`@${sourceCurrent[1]}[i]`, vector);
+    if (name === "v-sweep" || name === "v(v-sweep)") register(compiledAxis, vector);
+    const differential = /^v\(([^,]+),([^)]+)\)$/.exec(name);
+    if (differential) register(`v(${differential[2]},${differential[1]})`, vector);
   }
-  if (seen.size !== required.length || required.some(name => !seen.has(name.toLowerCase()))) {
-    return fail("RESULT_RAW_SET", "adapter raw vectors do not match the compiled requested set");
+  for (const name of required) {
+    const key = name.toLowerCase();
+    if (byName.has(key)) continue;
+    const match = /^v\(([^,]+),([^)]+)\)$/.exec(key);
+    if (!match) continue;
+    const left = match[1] === "0" ? undefined : byName.get(`v(${match[1]})`);
+    const right = match[2] === "0" ? undefined : byName.get(`v(${match[2]})`);
+    if ((match[1] !== "0" && !left) || (match[2] !== "0" && !right)) continue;
+    const length = left?.real.length ?? right?.real.length ?? 0;
+    if (!length) continue;
+    const real = new Float64Array(length);
+    const imaginary =
+      left?.imaginary || right?.imaginary ? new Float64Array(length) : undefined;
+    for (let index = 0; index < length; index += 1) {
+      real[index] = (left?.real[index] ?? 0) - (right?.real[index] ?? 0);
+      if (imaginary) imaginary[index] = (left?.imaginary?.[index] ?? 0) - (right?.imaginary?.[index] ?? 0);
+    }
+    register(key, { name: key, axisName: key, real, imaginary });
+  }
+  if (required.some(name => !byName.has(name.toLowerCase()))) {
+    const missing = required.filter(name => !byName.has(name.toLowerCase()));
+    return fail("RESULT_RAW_SET", `adapter raw vectors do not match the compiled requested set: missing ${missing.join(", ")}; have ${[...seen].join(", ")}`);
   }
   const analysis = input.run.analysis;
   const axisUnit = axisUnitFor(analysis);

@@ -1,8 +1,10 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Link } from "wouter";
 import { APP_BUILD_ID } from "./build-info";
-import type { CircuitProjectV2, ComponentId, Diagnostic } from "../domain/project/project-v2";
+import type { AnalysisId, CircuitProjectV2, ComponentId, Diagnostic } from "../domain/project/project-v2";
+import AnalysisPanel from "../features/analysis/AnalysisPanel";
 import DiagnosticsPanel from "../features/analysis/DiagnosticsPanel";
+import ProbePanel from "../features/analysis/ProbePanel";
 import ProvenanceInspector from "../features/analysis/ProvenanceInspector";
 import RunControls from "../features/analysis/RunControls";
 import RunHistory from "../features/analysis/RunHistory";
@@ -10,8 +12,11 @@ import ComponentPalette from "../features/editor/ComponentPalette";
 import PropertiesPanel from "../features/editor/PropertiesPanel";
 import SchematicCanvas from "../features/editor/SchematicCanvas";
 import { isElectricalCommand, projectReducer, type ProjectCommand } from "../features/editor/project-reducer";
+import ResultDock from "../features/instruments/ResultDock";
+import ModelPanel from "../features/models/ModelPanel";
 import type { RunRecord, SuccessfulRunRecord } from "../simulation/contracts";
 import { compileNetlist } from "../simulation/compile-netlist";
+import { estimateRunResources } from "../simulation/resource-estimator";
 import { PINNED_ENGINE, SimulationController } from "../simulation/simulation-controller";
 import { checkRunFreshness } from "../simulation/run-record";
 import {
@@ -75,16 +80,28 @@ function currentOf(run: SuccessfulRunRecord, refdes: string) {
   return value === undefined ? "—" : `${(value * 1000).toFixed(6)} mA`;
 }
 
+function runLabelOf(kind: string | undefined) {
+  if (kind === "dc-op") return "运行 DC 工作点";
+  if (kind === "dc-sweep") return "运行 DC 扫描";
+  if (kind === "transient") return "运行暂态";
+  if (kind === "ac") return "运行交流";
+  return "运行分析";
+}
+
 export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
   const [loadError, setLoadError] = useState<Diagnostic[] | null>(null);
   const [selectedId, setSelectedId] = useState<ComponentId | null>(null);
   const [selectedWireId, setSelectedWireId] = useState<string | null>(null);
+  const [analysisId, setAnalysisId] = useState<AnalysisId | null>(null);
   const [saveState, setSaveState] = useState<ProjectSaveState | null>(null);
   const [ready, setReady] = useState(false);
   const [records, setRecords] = useState<RunRecord[]>([]);
   const [selectedRun, setSelectedRun] = useState<SuccessfulRunRecord | null>(null);
+  const [compareRun, setCompareRun] = useState<SuccessfulRunRecord | null>(null);
   const [fresh, setFresh] = useState(false);
   const [running, setRunning] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
+  const [estimateText, setEstimateText] = useState("—");
   const [runDiagnostics, setRunDiagnostics] = useState<Diagnostic[]>([]);
   const [previewDiagnostics, setPreviewDiagnostics] = useState<Diagnostic[]>([]);
   const [loadErrors, setLoadErrors] = useState<Diagnostic[]>([]);
@@ -97,8 +114,8 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
   const laneRef = useRef<ReturnType<typeof createProjectSaveLane> | null>(null);
   const allowEnqueue = useRef(false);
   const controllerRef = useRef<SimulationController | null>(null);
-  const analysisId = editor.present.analyses.find(item => item.kind === "dc-op")?.id ?? editor.present.analyses[0]?.id ?? null;
   const saveBusy = saveState?.status === "saving" || saveState?.status === "dirty";
+  const selectedAnalysis = editor.present.analyses.find(item => item.id === analysisId);
 
   useEffect(() => {
     const controller = new SimulationController();
@@ -111,12 +128,12 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelledLoad = false;
     allowEnqueue.current = false;
     setReady(false);
     setLoadError(null);
     void loadProject(projectId).then(result => {
-      if (cancelled) return;
+      if (cancelledLoad) return;
       if (!result.ok) {
         setLoadError(result.diagnostics);
         return;
@@ -126,6 +143,7 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
         return;
       }
       dispatch({ type: "load", project: result.value });
+      setAnalysisId(result.value.analyses[0]?.id ?? null);
       laneRef.current?.dispose();
       const lane = createProjectSaveLane({
         persist: (expected, project) => saveProject(expected, project),
@@ -137,7 +155,7 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
       setReady(true);
     });
     return () => {
-      cancelled = true;
+      cancelledLoad = true;
       laneRef.current?.dispose();
       laneRef.current = null;
     };
@@ -152,7 +170,12 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
     laneRef.current?.enqueue(editor.present);
   }, [editor.present, ready]);
 
-  async function refreshRuns(preferId?: string) {
+  useEffect(() => {
+    if (analysisId && editor.present.analyses.some(item => item.id === analysisId)) return;
+    setAnalysisId(editor.present.analyses[0]?.id ?? null);
+  }, [analysisId, editor.present.analyses]);
+
+  async function refreshRuns(preferId?: string, forAnalysis = analysisId) {
     const listed = await listRuns(projectId);
     if (!listed.ok) {
       setLoadErrors(listed.diagnostics);
@@ -172,25 +195,43 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
     setLoadErrors(errors);
     const successes = loaded.filter((item): item is SuccessfulRunRecord => item.status === "success");
     const preferred = preferId ? successes.find(item => item.runId === preferId) : undefined;
-    setSelectedRun(preferred ?? successes.at(-1) ?? null);
+    const matching = successes.filter(item => !forAnalysis || item.analysisId === forAnalysis);
+    setSelectedRun(preferred ?? matching.at(-1) ?? null);
   }
 
   useEffect(() => {
-    if (ready) void refreshRuns();
-  }, [ready, projectId]);
+    if (ready) void refreshRuns(undefined, analysisId);
+  }, [ready, projectId, analysisId]);
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelledEstimate = false;
     const analysis = editor.present.analyses.find(item => item.id === analysisId);
     if (!analysis) {
       setPreviewDiagnostics([]);
+      setEstimateText("—");
       return;
     }
     void compileNetlist({ project: editor.present, analysis }).then(result => {
-      if (!cancelled) setPreviewDiagnostics(result.diagnostics);
+      if (cancelledEstimate) return;
+      setPreviewDiagnostics(result.diagnostics);
+      if (!result.ok) {
+        setEstimateText("—");
+        return;
+      }
+      const estimate = estimateRunResources({
+        project: editor.present,
+        analysis,
+        compiled: result.value,
+        resultTransport: "binary-rawfile",
+      });
+      if (!estimate.ok) {
+        setEstimateText(estimate.diagnostics.map(item => item.code).join(" "));
+        return;
+      }
+      setEstimateText(`${estimate.value.axisPoints} 点 · ${estimate.value.snapshotTransferBytes} 字节`);
     });
     return () => {
-      cancelled = true;
+      cancelledEstimate = true;
     };
   }, [editor.present, analysisId]);
 
@@ -199,17 +240,17 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
       setFresh(false);
       return;
     }
-    let cancelled = false;
+    let cancelledFresh = false;
     void checkRunFreshness({
       run: selectedRun,
       project: editor.present,
       appBuildId: APP_BUILD_ID,
       engine: PINNED_ENGINE,
     }).then(result => {
-      if (!cancelled && result.ok) setFresh(result.value.fresh);
+      if (!cancelledFresh && result.ok) setFresh(result.value.fresh);
     });
     return () => {
-      cancelled = true;
+      cancelledFresh = true;
     };
   }, [selectedRun, editor.present]);
 
@@ -224,6 +265,7 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
   async function onRun() {
     if (!analysisId || !controllerRef.current) return;
     setRunning(true);
+    setCancelled(false);
     setRunDiagnostics([]);
     const result = await controllerRef.current.run({ project: editor.present, analysisId });
     setRunning(false);
@@ -231,20 +273,28 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
       setRunDiagnostics(result.diagnostics);
       return;
     }
-    await refreshRuns(result.status === "success" ? result.runId : undefined);
+    if (result.status === "cancelled") {
+      setCancelled(true);
+      setSelectedRun(null);
+      await refreshRuns(undefined, analysisId);
+      return;
+    }
+    await refreshRuns(result.status === "success" ? result.runId : undefined, analysisId);
   }
 
   const lastFailed = [...records].reverse().find(item => item.status === "failed");
   const currentEnough = Boolean(selectedRun && fresh && selectedRun.electricalRevision === editor.present.electricalRevision);
   const statusLabel = running
     ? "运行中"
-    : selectedRun && currentEnough
-      ? "成功 · 当前"
-      : selectedRun
-        ? "成功 · 历史结果"
-        : records[0]
-          ? records[0].status
-          : "尚未运行";
+    : cancelled && !selectedRun
+      ? "已取消"
+      : selectedRun && currentEnough
+        ? "成功 · 当前"
+        : selectedRun
+          ? "成功 · 历史结果"
+          : records[0]
+            ? records[0].status
+            : "尚未运行";
 
   if (loadError) {
     return (
@@ -297,6 +347,13 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
           onCommand={command => void runCommand(command)}
         />
         <div className="workspace-rail">
+          <AnalysisPanel
+            project={editor.present}
+            analysisId={analysisId}
+            estimateText={estimateText}
+            onSelect={setAnalysisId}
+            onCommand={command => void runCommand(command)}
+          />
           <RunControls
             project={editor.present}
             analysisId={analysisId}
@@ -304,9 +361,14 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
             running={running}
             saveBusy={Boolean(saveBusy)}
             blockers={previewDiagnostics.filter(item => item.blocksRun)}
+            runLabel={runLabelOf(selectedAnalysis?.kind)}
             onRun={() => void onRun()}
             onCancel={() => {
-              void controllerRef.current?.cancel("user").then(() => setRunning(false));
+              void controllerRef.current?.cancel("user").then(() => {
+                setRunning(false);
+                setCancelled(true);
+                setSelectedRun(null);
+              });
             }}
           />
           <p data-testid="vout-value">{selectedRun ? voltageOf(selectedRun) : "—"}</p>
@@ -317,7 +379,16 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
           {lastFailed && lastFailed.status === "failed" ? (
             <p data-testid="run-failure-message">{lastFailed.failure.message}</p>
           ) : null}
-          <RunHistory records={records} selectedId={selectedRun?.runId ?? null} onSelect={setSelectedRun} />
+          <ProbePanel project={editor.present} analysis={selectedAnalysis} onCommand={command => void runCommand(command)} />
+          <ModelPanel project={editor.present} onCommand={command => void runCommand(command)} />
+          <ResultDock run={selectedRun} compare={compareRun} />
+          <RunHistory
+            records={records}
+            selectedId={selectedRun?.runId ?? null}
+            compareId={compareRun?.runId ?? null}
+            onSelect={setSelectedRun}
+            onCompare={setCompareRun}
+          />
           <DiagnosticsPanel
             diagnostics={[
               ...previewDiagnostics,

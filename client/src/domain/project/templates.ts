@@ -1,4 +1,5 @@
 import { bundledManifestForValidation, bundledModelDefinition, CURRENT_BUNDLED_MODEL_KEYS } from "./bundled-models";
+import { sha256Hex } from "./canonical";
 import type { CircuitProjectV2, ComponentInstance, DomainResult, SchematicLayout } from "./project-v2";
 import { parseCircuitProjectV2 } from "./project-schema";
 import { validateProjectModels } from "../../simulation/spice-source-parser";
@@ -143,6 +144,95 @@ export async function createLedTemplate(projectId: string, createdAt: string): P
     models: [diode],
     analyses: [{ id: "an-op", name: "DC OP", kind: "dc-op", enabledProbes: ["pr-led"] }],
     probes: [{ id: "pr-led", kind: "branch-current", componentId: "D1", label: "I(D1)" }],
+    assertions: [],
+    corners: [],
+    notes: [],
+  });
+}
+
+export async function createDiodeSweepTemplate(projectId: string, createdAt: string): Promise<DomainResult<CircuitProjectV2>> {
+  const source = ".model DMOD D(IS=1e-14 N=1)\n";
+  const sha256 = await sha256Hex(source);
+  const components: ComponentInstance[] = [
+    { id: "V1", refdes: "V1", kind: "voltageSource", params: { dcV: 0 } },
+    { id: "D1", refdes: "D1", kind: "diode", params: { area: 1 }, modelRef: "dmod" },
+    { id: "GND", refdes: "GND", kind: "ground", params: {} },
+  ];
+  return finalize({
+    schemaVersion: 2,
+    id: projectId,
+    title: "二极管 DC 扫描",
+    createdAt,
+    updatedAt: createdAt,
+    revision: 1,
+    electricalRevision: 1,
+    schematic: {
+      components,
+      wires: [
+        { id: "w1", from: { componentId: "V1", pin: "p" }, to: { componentId: "D1", pin: "p" } },
+        { id: "w2", from: { componentId: "D1", pin: "n" }, to: { componentId: "GND", pin: "p" } },
+        { id: "w3", from: { componentId: "GND", pin: "p" }, to: { componentId: "V1", pin: "n" } },
+      ],
+    },
+    layout: layoutFor(components, { V1: { x: 220, y: 280 }, D1: { x: 480, y: 280 }, GND: { x: 480, y: 480 } }),
+    models: [
+      {
+        id: "dmod",
+        displayName: "DMOD",
+        source,
+        sha256,
+        origin: "user-import",
+        kind: "spice-model",
+        modelName: "DMOD",
+        deviceFamily: "diode",
+      },
+    ],
+    analyses: [
+      {
+        id: "an-dc",
+        name: "Diode sweep",
+        kind: "dc-sweep",
+        sweep: { sourceComponentId: "V1", quantity: "voltage", startV: 0.4, stopV: 0.8, stepV: 0.01 },
+        enabledProbes: ["pr-id"],
+      },
+    ],
+    probes: [{ id: "pr-id", kind: "branch-current", componentId: "V1", label: "I(V1)" }],
+    assertions: [],
+    corners: [],
+    notes: [],
+  });
+}
+
+export async function createLowpassAcTemplate(projectId: string, createdAt: string): Promise<DomainResult<CircuitProjectV2>> {
+  const components: ComponentInstance[] = [
+    { id: "V1", refdes: "V1", kind: "voltageSource", params: { dcV: 0, ac: { magnitudeV: 1, phaseDeg: 0 } } },
+    { id: "R1", refdes: "R1", kind: "resistor", params: { resistanceOhm: 1000 } },
+    { id: "C1", refdes: "C1", kind: "capacitor", params: { capacitanceF: 1e-6 } },
+    { id: "GND", refdes: "GND", kind: "ground", params: {} },
+  ];
+  return finalize({
+    schemaVersion: 2,
+    id: projectId,
+    title: "RC 低通交流",
+    createdAt,
+    updatedAt: createdAt,
+    revision: 1,
+    electricalRevision: 1,
+    schematic: {
+      components,
+      wires: [
+        { id: "w1", from: { componentId: "V1", pin: "p" }, to: { componentId: "R1", pin: "p" } },
+        { id: "w2", from: { componentId: "R1", pin: "n" }, to: { componentId: "C1", pin: "p" } },
+        { id: "w3", from: { componentId: "C1", pin: "n" }, to: { componentId: "GND", pin: "p" } },
+        { id: "w4", from: { componentId: "GND", pin: "p" }, to: { componentId: "V1", pin: "n" } },
+      ],
+    },
+    layout: layoutFor(components, { V1: { x: 220, y: 300 }, R1: { x: 480, y: 220 }, C1: { x: 480, y: 400 }, GND: { x: 480, y: 540 } }),
+    models: [],
+    analyses: [
+      { id: "an-ac", name: "AC", kind: "ac", scale: "dec", pointsPerInterval: 20, startHz: 1, stopHz: 1e5, enabledProbes: ["pr-vout"] },
+    ],
+    probes: [{ id: "pr-vout", kind: "node-voltage", node: { componentId: "C1", pin: "p" }, label: "Vout" }],
     assertions: [],
     corners: [],
     notes: [],

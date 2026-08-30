@@ -145,7 +145,23 @@ self.onmessage = async (event: MessageEvent<SimulationWorkerRequest>) => {
       transfer
     );
   } catch (error) {
-    const structured = error && typeof error === "object" && "failure" in error ? (error as { failure: ReturnType<typeof failure> }).failure : failure("ADAPTER_EXIT", error instanceof Error ? error.message : "run failed");
+    const structured =
+      error && typeof error === "object" && "failure" in error
+        ? (error as { failure: ReturnType<typeof failure> }).failure
+        : failure(
+            "ADAPTER_EXIT",
+            error instanceof Error
+              ? error.message
+              : typeof error === "string"
+                ? error
+                : `run failed: ${(() => {
+                    try {
+                      return JSON.stringify(error);
+                    } catch {
+                      return String(error);
+                    }
+                  })()}`
+          );
     post({
       type: "run-failed",
       appBuildId: message.appBuildId,

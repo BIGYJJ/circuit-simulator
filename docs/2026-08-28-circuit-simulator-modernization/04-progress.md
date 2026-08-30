@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 14 DC 工作台切片 landed
-- Completed: Task 1–14。
-- In progress: Task 15 四类分析与仪器。
+- Phase: Task 15 四类分析与仪器 landed
+- Completed: Task 1–15。
+- In progress: Task 16 角点与交付门禁。
 - Blocked: 无。
-- Next: Task 15 DC sweep / transient / AC / 仪器 / 比较。
+- Next: Task 16 nominal/corner 序列与三态交付门。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；PWA 与完整工作台其余切片仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 15 added traceable analyses, instruments, and comparisons
+
+- Completed: 同一项目可配置 DC sweep / transient / AC；模型预览采用；示波器/Bode/表格/比较只投影 `SuccessfulRunRecord`。`pnpm check` exit 0；focused 单元 18/18；Chromium `analysis-and-instruments.spec.ts` 6/6（14.0s）。
+- Verified: 二极管扫描电流单调上升且模型哈希 64 hex；RC `V(1τ)`/`V(5τ)` 在 0.5% 内；一极低通 −3 dB 截止在 1% 内；取消后 500 ms 内 Run 再可用且无波形；伪造 I 源电流草稿零写入；危险 `.shell` 续行零写入。
+- Deviation: rawfile 允许超集向量，并把 `i(v1)`/`v-sweep` 及拆开的节点电压合成差分 `v(a,b)`；二极管扫描用合格矩阵的 V 源电流 `@v1[i]`，因为 D 族没有支路电流项。
+- Reason: ngspice-46 对差分 `.save v(a,b)` 会拆成两个节点电压，且 DC 扫描常多带轴名别名。
+- Remaining: Task 16–23。
 
 ### 2026-08-31 — Task 14 ran traceable DC operating points in the workspace
 
