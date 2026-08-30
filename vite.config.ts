@@ -2,14 +2,20 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { defineConfig } from "vite";
+import { resolveBuildIdentity } from "./scripts/resolve-build-identity.mjs";
 import { readEngineFingerprint } from "./scripts/verify-ngspice-assets.mjs";
 
 readEngineFingerprint();
+const buildIdentity = resolveBuildIdentity(path.resolve(import.meta.dirname), process.env);
 
 const PREVIEW_CSP =
   "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'";
 
 export default defineConfig({
+  define: {
+    __FLUXLAB_APP_BUILD_ID__: JSON.stringify(buildIdentity.appBuildId),
+    __FLUXLAB_NON_RELEASE_BUILD__: JSON.stringify(buildIdentity.nonReleaseBuild),
+  },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

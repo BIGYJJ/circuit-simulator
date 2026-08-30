@@ -345,7 +345,7 @@ async function buildVectorPlan(
   return { ok: true, value: plan, diagnostics: [] };
 }
 
-function requestedRawVectors(plan: CompiledVectorRequest[]) {
+export function requestedRawVectorsFromPlan(plan: CompiledVectorRequest[]) {
   const names = new Set<string>();
   for (const entry of plan) {
     names.add(entry.sourceVectorName);
@@ -463,7 +463,7 @@ export async function compileNetlist(request: CompileRequest): Promise<DomainRes
     bucket.push(line);
     componentToLines[component.id] = bucket;
   }
-  const rawVectors = requestedRawVectors(plan.value);
+  const rawVectors = requestedRawVectorsFromPlan(plan.value);
   if (rawVectors.length) lines.push(`.save ${rawVectors.join(" ")}`);
   lines.push(analysisLine);
   lines.push(".end");

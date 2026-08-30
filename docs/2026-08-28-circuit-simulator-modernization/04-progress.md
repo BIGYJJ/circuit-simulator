@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 12 measurements landed
-- Completed: Task 1–12。
-- In progress: Task 13 Worker generation。
+- Phase: Task 13 generation-safe workers landed
+- Completed: Task 1–13。
+- In progress: Task 14 DC 工作台切片。
 - Blocked: 无。
-- Next: Task 13 仿真入口、取消、超时与原子完成。
-- Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；仿真 Worker、PWA 与完整工作台仍未实现。
+- Next: Task 14 统一工作台运行真实 DC 工作点。
+- Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；PWA 与完整工作台仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 13 ran generation-safe ngspice workers
+
+- Completed: `resolveBuildIdentity` verification 树哈希、`SimulationController`、`simulator.worker.ts`、Vite `define` 注入。`node --test tests/release/build-identity-mode.test.mjs` 3/3；controller/run-record/measurements 17/17；`pnpm check` exit 0。
+- Verified: 同字节不同枚举顺序得到同一 `verify-<64hex>`；改一字节变 ID；未知 purpose 失败；verification 不满足 release predicate；取消 A 后启动 B，迟到的 A.completed 被忽略。
+- Deviation: Windows 上创建 symlink 可能 EPERM，身份测试在无法创建时跳过该条而仍覆盖未知 purpose。控制器单测用假 Worker/锁/存储。
+- Reason: 本机未提权；产品路径仍要求三浏览器 Web Locks，资格套件继续覆盖真实引擎。
+- Remaining: Task 14–23。
 
 ### 2026-08-31 — Task 12 evaluated run-bound measurements and assertions
 

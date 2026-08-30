@@ -1,5 +1,15 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 13 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Build identity | Pass | `node --test tests/release/build-identity-mode.test.mjs` 3/3 |
+| Controller + records + measurements | Pass | vitest 17/17 |
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Production worker assets | Pass | `simulator.worker-CdiYH1wG.js` 7,263.95 kB + hashed `ngspice-*.wasm` |
+| Three-browser qualification | Pass | Playwright Chromium/Firefox/WebKit `ngspice-qualification.spec.ts` 3 passed (17.1s) |
+
 ## Task 10 Changed Functionality
 
 | Check | Status | Fresh evidence |

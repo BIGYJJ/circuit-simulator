@@ -3,6 +3,7 @@ import type { AssertionDefinition, CircuitProjectV2, Diagnostic, DomainResult } 
 import { compileNetlist, hashAnalysisDefinition } from "./compile-netlist";
 import type {
   AssertionEvaluation,
+  CompileResult,
   CompletedRunCandidate,
   EngineFingerprint,
   RunRecord,
@@ -82,10 +83,13 @@ export async function buildRunningRecordForProject(input: {
   appBuildId: string;
   engine: EngineFingerprint;
   startedAt: string;
+  compiled?: CompileResult;
 }): Promise<DomainResult<RunningRunRecord>> {
   const analysis = input.project.analyses.find(item => item.id === input.analysisId);
   if (!analysis) return fail("RUN_ANALYSIS_MISMATCH", "analysis is not on the project");
-  const compiled = await compileNetlist({ project: input.project, analysis });
+  const compiled = input.compiled
+    ? { ok: true as const, value: input.compiled, diagnostics: [] }
+    : await compileNetlist({ project: input.project, analysis });
   if (!compiled.ok) return compiled;
   const requestedAssertions = selectEnabledAssertions(input.project.assertions, analysis.id);
   const requestedAssertionSetHash = await computeAssertionSetHash(input.project.assertions, analysis.id);
