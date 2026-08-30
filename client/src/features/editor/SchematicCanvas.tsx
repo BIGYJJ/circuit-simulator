@@ -201,7 +201,7 @@ export default function SchematicCanvas({
         return (
           <g key={wire.id} data-testid={`wire-${wire.id}`}>
             <line
-              data-testid={`select-wire-${wire.id}`}
+              data-testid={`canvas-hit-wire-${wire.id}`}
               x1={from.x + fromPin.x}
               y1={from.y + fromPin.y}
               x2={to.x + toPin.x}

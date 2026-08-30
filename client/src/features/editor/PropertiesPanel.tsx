@@ -90,7 +90,7 @@ export default function PropertiesPanel({
       <ul>
         {project.schematic.wires.map(wire => (
           <li key={wire.id}>
-            <button type="button" data-testid={`panel-select-wire-${wire.id}`} onClick={() => onSelectWire(wire.id)}>
+            <button type="button" data-testid={`select-wire-${wire.id}`} onClick={() => onSelectWire(wire.id)}>
               {`选择连线 ${wire.id}`}
             </button>
           </li>
