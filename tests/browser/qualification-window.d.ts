@@ -30,4 +30,9 @@ interface Window {
   __fluxlabTestDelaySaveMs?: number;
   __idbGets?: number;
   __idbGetAlls?: number;
+  __fluxlabRunStorage?: any;
+  __fluxlabBuildRunningRecord?: any;
+  __fluxlabPatchedDelete?: () => void;
+  __fluxlabHeldLock?: boolean;
+  __fluxlabReleaseHeldLock?: () => void;
 }

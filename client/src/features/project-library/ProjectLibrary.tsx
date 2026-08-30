@@ -1,14 +1,21 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { createDividerTemplate } from "../../domain/project/templates";
-import type { Diagnostic } from "../../domain/project/project-v2";
-import { listProjects, saveProject, type ProjectSummary } from "../../storage/indexeddb";
+import type { Diagnostic, ProjectId } from "../../domain/project/project-v2";
+import { deleteProject, listProjects, saveProject, type ProjectSummary } from "../../storage/indexeddb";
 
 export default function ProjectLibrary() {
   const [, navigate] = useLocation();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
   const [busy, setBusy] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ProjectId | null>(null);
+
+  async function refresh() {
+    const result = await listProjects();
+    if (result.ok) setProjects(result.value);
+    else setDiagnostics(result.diagnostics);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -40,6 +47,21 @@ export default function ProjectLibrary() {
     navigate(`/project/${saved.value.id}`);
   }
 
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const target = pendingDelete;
+    setBusy(true);
+    const result = await deleteProject(target);
+    if (!result.ok) {
+      setDiagnostics(result.diagnostics);
+      setBusy(false);
+      return;
+    }
+    setPendingDelete(null);
+    await refresh();
+    setBusy(false);
+  }
+
   return (
     <main className="library-page">
       <header className="library-header">
@@ -56,18 +78,37 @@ export default function ProjectLibrary() {
           新建分压项目
         </button>
         {diagnostics.map(item => (
-          <p key={item.code} className="library-diagnostic">
+          <p key={item.code} className="library-diagnostic" data-testid="library-diagnostic">
             {item.code}
           </p>
         ))}
         <ul className="library-list">
           {projects.map(project => (
-            <li key={project.projectId}>
+            <li key={project.projectId} data-testid={`project-row-${project.projectId}`}>
               <Link href={`/project/${project.projectId}`}>{project.title}</Link>
               <span>{`修订 ${project.revision}`}</span>
+              <button
+                type="button"
+                data-testid={`delete-project-${project.projectId}`}
+                disabled={busy}
+                onClick={() => setPendingDelete(project.projectId)}
+              >
+                删除
+              </button>
             </li>
           ))}
         </ul>
+        {pendingDelete ? (
+          <dialog open className="library-delete-dialog" data-testid="delete-project-dialog">
+            <p>{`确认删除项目 ${pendingDelete}？此操作会一并删除其运行记录。`}</p>
+            <button type="button" data-testid="cancel-delete-project" onClick={() => setPendingDelete(null)}>
+              取消
+            </button>
+            <button type="button" data-testid="confirm-delete-project" disabled={busy} onClick={() => void confirmDelete()}>
+              确认删除
+            </button>
+          </dialog>
+        ) : null}
       </section>
     </main>
   );

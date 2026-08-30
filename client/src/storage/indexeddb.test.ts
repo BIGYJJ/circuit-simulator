@@ -5,6 +5,7 @@ import { applyProjectCommand } from "../features/editor/project-reducer";
 import {
   closeFluxlabDatabaseForTests,
   createProjectSaveLane,
+  createRunningRun,
   deleteProject,
   listProjects,
   loadProject,
@@ -12,6 +13,7 @@ import {
   saveProject,
   type StoredSettingEnvelope,
 } from "./indexeddb";
+import { buildRunningRecordForProject } from "../simulation/run-record";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -189,6 +191,81 @@ describe("project save lane", () => {
     gate.resolve();
     await lane.flush();
     expect(lastStatus).not.toBe("saved");
+  });
+});
+
+const ENGINE = {
+  name: "ngspice" as const,
+  version: "ngspice-46",
+  resultTransport: "binary-rawfile" as const,
+  moduleSha256: "b285fc2d5b19135ed9b775ab41a6ceeb9bb75482bc6b3a44956cc6c959406b93",
+  wasmSha256: "710da3c95ca4c86ffd87db6189e80b7d56c630801625db3129e203726701e59c",
+  engineBuildId: "ngspice-46-emscripten-singlethread-256m-20260527",
+};
+
+describe("run sequence allocation", () => {
+  it("assigns localAttempt 1 then 2", async () => {
+    const project = dividerProjectFixture();
+    const saved = await saveProject(null, project);
+    expect(saved.ok).toBe(true);
+    const firstRecord = await buildRunningRecordForProject({
+      project,
+      analysisId: project.analyses[0]!.id,
+      runId: "run-1",
+      appBuildId: "verify-test",
+      engine: ENGINE,
+      startedAt: "2026-08-31T00:00:00.000Z",
+    });
+    const secondRecord = await buildRunningRecordForProject({
+      project,
+      analysisId: project.analyses[0]!.id,
+      runId: "run-2",
+      appBuildId: "verify-test",
+      engine: ENGINE,
+      startedAt: "2026-08-31T00:00:01.000Z",
+    });
+    expect(firstRecord.ok && secondRecord.ok).toBe(true);
+    if (!firstRecord.ok || !secondRecord.ok) return;
+    const first = await createRunningRun(firstRecord.value);
+    const second = await createRunningRun(secondRecord.value);
+    expect(first.ok && first.value.localAttempt).toBe(1);
+    expect(second.ok && second.value.localAttempt).toBe(2);
+  });
+
+  it("fails closed when the sequence is exhausted", async () => {
+    const project = dividerProjectFixture();
+    project.id = "proj-exhausted";
+    const saved = await saveProject(null, project);
+    expect(saved.ok).toBe(true);
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open("fluxlab", 1);
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction("runSequences", "readwrite");
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.objectStore("runSequences").put({
+          envelopeVersion: 1,
+          projectId: project.id,
+          nextAttempt: Number.MAX_SAFE_INTEGER,
+          storageVersion: 2,
+        });
+      };
+      request.onerror = () => reject(request.error);
+    });
+    const record = await buildRunningRecordForProject({
+      project,
+      analysisId: project.analyses[0]!.id,
+      runId: "run-exhausted",
+      appBuildId: "verify-test",
+      engine: ENGINE,
+      startedAt: "2026-08-31T00:00:00.000Z",
+    });
+    expect(record.ok).toBe(true);
+    if (!record.ok) return;
+    const created = await createRunningRun(record.value);
+    expect(created.ok).toBe(false);
+    if (!created.ok) expect(created.diagnostics[0]?.code).toBe("STORAGE_RUN_SEQUENCE_EXHAUSTED");
   });
 });
 

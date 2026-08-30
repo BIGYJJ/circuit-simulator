@@ -330,3 +330,13 @@ export type RunRecord = RunRecordBase &
   );
 
 export type SuccessfulRunRecord = Extract<RunRecord, { status: "success" }>;
+export type RunningRunRecord = Extract<RunRecord, { status: "running" }>;
+export type TerminalRunRecord = Exclude<RunRecord, { status: "running" }>;
+
+export interface CompletedRunCandidate {
+  running: RunningRunRecord;
+  finishedAt: string;
+  snapshot: SimulationSnapshot;
+  requestedAssertions: AssertionDefinition[];
+  requestedAssertionSetHash: string;
+}

@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 10 qualified ngspice adapter landed
-- Completed: Task 1–10。
-- In progress: Task 11 RunRecord 状态机。
+- Phase: Task 11 run records landed
+- Completed: Task 1–11。
+- In progress: Task 12 测量与断言求值。
 - Blocked: 无。
-- Next: Task 11 校验向量并持久化可追溯运行记录。
+- Next: Task 12 受控测量与捕获断言集合。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；仿真 Worker、PWA 与完整工作台仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 11 validated and persisted traceable run records
+
+- Completed: `parseAdapterResult`、RunRecord 纯转换、`parseRunRecord`、IDB `createRunningRun/finishRun/listRuns/recoverInterruptedRuns`、项目库确认删除。focused 单元 12 + IDB 序列 2；Chromium `run-storage.spec.ts` 4/4；`pnpm check` exit 0。
+- Verified: NaN 向量失败；快照 runId 漂移失败；sequence 1→2 与耗尽；删除取消无写、确认三联删除、注入第二次 delete 失败整单回滚；延迟保存与分配串行成功；列表路径 `get/getAll` 为 0；他页持锁不可恢复，关闭后恰好一条 `RUN_INTERRUPTED`。
+- Deviation: 近 64 MiB 列表夹具未再分配满额波形，改用真实 running envelope 证明 key-cursor 列表。跨标签恢复在 `page.close` 后等待 Web Lock 释放再 CAS。
+- Reason: 列表门禁的目标是零 `get/getAll`，不必在 Task 11 物化 64 MiB 合法快照；锁释放是浏览器生命周期事实。
+- Remaining: Task 12–23。
 
 ### 2026-08-31 — Task 10 wrapped the qualified ngspice runtime
 

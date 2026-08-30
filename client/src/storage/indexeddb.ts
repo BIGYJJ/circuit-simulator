@@ -1,6 +1,9 @@
 import { bundledManifestForValidation } from "../domain/project/bundled-models";
 import { parseCircuitProjectV2 } from "../domain/project/project-schema";
-import type { CircuitProjectV2, Diagnostic, DomainResult, ProjectId } from "../domain/project/project-v2";
+import type { AnalysisId, CircuitProjectV2, Diagnostic, DomainResult, ProjectId, RunId } from "../domain/project/project-v2";
+import type { AssertionEvaluation, RunRecord, RunningRunRecord, SuccessfulRunRecord, TerminalRunRecord } from "../simulation/contracts";
+import { buildRunningRecordForProject, computeImmutableBaseHash, recoverInterruptedRun } from "../simulation/run-record";
+import { parseRunRecord } from "../simulation/run-record-schema";
 import { validateProjectModels } from "../simulation/spice-source-parser";
 import { z, type ZodIssue } from "zod";
 
@@ -27,6 +30,25 @@ export interface StoredRunSequence {
   projectId: ProjectId;
   nextAttempt: number;
   storageVersion: number;
+}
+
+export interface RunSummary {
+  runId: RunId;
+  projectId: ProjectId;
+  localAttempt: number;
+  startedAt: string;
+  analysisId: AnalysisId;
+  status: RunRecord["status"];
+  cornerKey: string;
+}
+
+export interface StoredRunEnvelope {
+  envelopeVersion: 1;
+  storageVersion: number;
+  localAttempt: number;
+  immutableBaseHash: string;
+  record: RunRecord;
+  listKey: readonly [ProjectId, number, string, AnalysisId, RunRecord["status"], string, RunId];
 }
 
 export interface LocalSettingsV1 {
@@ -225,7 +247,7 @@ function openDatabase(): Promise<IDBDatabase> {
         db.createObjectStore("runSequences", { keyPath: "projectId" });
       }
       if (!db.objectStoreNames.contains("runs")) {
-        const runs = db.createObjectStore("runs", { keyPath: "record.id" });
+        const runs = db.createObjectStore("runs");
         runs.createIndex("listKey", "listKey", { unique: true });
         runs.createIndex("status", "record.status");
       }
@@ -502,4 +524,364 @@ export function createProjectSaveLane(input: {
       disposed = true;
     },
   };
+}
+
+function cornerKeyOf(record: RunRecord) {
+  return record.corner?.cornerId ?? "nominal";
+}
+
+export function deriveRunListKey(record: RunRecord, localAttempt: number): StoredRunEnvelope["listKey"] {
+  return [record.projectId, localAttempt, record.startedAt, record.analysisId, record.status, cornerKeyOf(record), record.runId];
+}
+
+function listKeysEqual(left: StoredRunEnvelope["listKey"], right: StoredRunEnvelope["listKey"]) {
+  return left.every((value, index) => value === right[index]);
+}
+
+export async function parseStoredRunEnvelope(input: unknown): Promise<DomainResult<StoredRunEnvelope>> {
+  if (!input || typeof input !== "object") return fail("STORAGE_INVALID_RUN", "run envelope is not an object");
+  const envelope = input as StoredRunEnvelope;
+  if (envelope.envelopeVersion !== 1 || !Number.isSafeInteger(envelope.storageVersion) || envelope.storageVersion < 1) {
+    return fail("STORAGE_INVALID_RUN", "run envelope version fields are invalid");
+  }
+  if (!Number.isSafeInteger(envelope.localAttempt) || envelope.localAttempt < 1) {
+    return fail("STORAGE_INVALID_RUN", "localAttempt is not a positive safe integer");
+  }
+  const record = await parseRunRecord(envelope.record);
+  if (!record.ok) return record;
+  const hash = await computeImmutableBaseHash(record.value);
+  if (hash !== envelope.immutableBaseHash) return fail("STORAGE_RUN_HASH", "immutableBaseHash does not recompute");
+  const listKey = deriveRunListKey(record.value, envelope.localAttempt);
+  if (!Array.isArray(envelope.listKey) || !listKeysEqual(listKey, envelope.listKey as StoredRunEnvelope["listKey"])) {
+    return fail("STORAGE_INVALID_RUN", "run listKey does not match the record");
+  }
+  return {
+    ok: true,
+    value: {
+      envelopeVersion: 1,
+      storageVersion: envelope.storageVersion,
+      localAttempt: envelope.localAttempt,
+      immutableBaseHash: hash,
+      record: record.value,
+      listKey,
+    },
+    diagnostics: [],
+  };
+}
+
+async function readRawRun(runId: RunId): Promise<unknown> {
+  const db = await openDatabase();
+  let raw: unknown;
+  const tx = db.transaction("runs", "readonly");
+  const request = tx.objectStore("runs").get(runId);
+  request.onsuccess = () => {
+    raw = request.result;
+  };
+  await waitForTransaction(tx);
+  return raw;
+}
+
+export async function createRunningRun(run: RunningRunRecord): Promise<DomainResult<StoredRunEnvelope>> {
+  const parsed = await parseRunRecord(run);
+  if (!parsed.ok) return parsed;
+  if (parsed.value.status !== "running") return fail("RUN_BAD_TRANSITION", "createRunningRun requires a running record");
+  const immutableBaseHash = await computeImmutableBaseHash(parsed.value);
+  const db = await openDatabase();
+  let created: StoredRunEnvelope | undefined;
+  let code = "STORAGE_WRITE_FAILED";
+  try {
+    const tx = db.transaction(["projects", "runSequences", "runs"], "readwrite");
+    const revisionRange = IDBKeyRange.only([parsed.value.projectId, parsed.value.projectRevision, parsed.value.electricalRevision]);
+    const cursorReq = tx.objectStore("projects").index("revisionKey").openKeyCursor(revisionRange);
+    cursorReq.onsuccess = () => {
+      if (!cursorReq.result) {
+        code = "STORAGE_RUN_STALE_PROJECT";
+        tx.abort();
+        return;
+      }
+      const sequenceReq = tx.objectStore("runSequences").get(parsed.value.projectId);
+      sequenceReq.onsuccess = () => {
+        const sequence = sequenceReq.result as StoredRunSequence | undefined;
+        if (!sequence || !Number.isSafeInteger(sequence.nextAttempt) || sequence.nextAttempt < 1) {
+          code = "STORAGE_INVALID_RUN_SEQUENCE";
+          tx.abort();
+          return;
+        }
+        if (sequence.nextAttempt === Number.MAX_SAFE_INTEGER) {
+          code = "STORAGE_RUN_SEQUENCE_EXHAUSTED";
+          tx.abort();
+          return;
+        }
+        const localAttempt = sequence.nextAttempt;
+        created = {
+          envelopeVersion: 1,
+          storageVersion: 1,
+          localAttempt,
+          immutableBaseHash,
+          record: parsed.value,
+          listKey: deriveRunListKey(parsed.value, localAttempt),
+        };
+        tx.objectStore("runSequences").put({
+          ...sequence,
+          nextAttempt: sequence.nextAttempt + 1,
+          storageVersion: sequence.storageVersion + 1,
+        });
+        tx.objectStore("runs").add(created, parsed.value.runId);
+      };
+    };
+    await waitForTransaction(tx);
+  } catch (error) {
+    return fail(code, error instanceof Error ? error.message : "createRunningRun failed");
+  }
+  if (!created) return fail(code, "createRunningRun did not persist an envelope");
+  return { ok: true, value: created, diagnostics: [] };
+}
+
+export async function finishRun(candidate: TerminalRunRecord): Promise<DomainResult<StoredRunEnvelope>> {
+  const raw = await readRawRun(candidate.runId);
+  if (raw === undefined) return fail("STORAGE_NOT_FOUND", "run does not exist");
+  const current = await parseStoredRunEnvelope(raw);
+  if (!current.ok) return current;
+  if (current.value.record.status !== "running") return fail("STORAGE_RUN_CONFLICT", "run is not running");
+  const parsed = await parseRunRecord(candidate);
+  if (!parsed.ok) return parsed;
+  const immutableBaseHash = await computeImmutableBaseHash(parsed.value);
+  if (immutableBaseHash !== current.value.immutableBaseHash) return fail("STORAGE_RUN_HASH", "terminal record changed immutable base fields");
+  const next: StoredRunEnvelope = {
+    envelopeVersion: 1,
+    storageVersion: current.value.storageVersion + 1,
+    localAttempt: current.value.localAttempt,
+    immutableBaseHash,
+    record: parsed.value,
+    listKey: deriveRunListKey(parsed.value, current.value.localAttempt),
+  };
+  const db = await openDatabase();
+  let conflict = false;
+  try {
+    const tx = db.transaction("runs", "readwrite");
+    const request = tx.objectStore("runs").get(candidate.runId);
+    request.onsuccess = () => {
+      const stored = request.result as StoredRunEnvelope | undefined;
+      if (
+        !stored ||
+        stored.storageVersion !== current.value.storageVersion ||
+        stored.localAttempt !== current.value.localAttempt ||
+        stored.immutableBaseHash !== current.value.immutableBaseHash ||
+        stored.record.runId !== candidate.runId ||
+        stored.record.status !== "running"
+      ) {
+        conflict = true;
+        tx.abort();
+        return;
+      }
+      tx.objectStore("runs").put(next, candidate.runId);
+    };
+    await waitForTransaction(tx);
+  } catch (error) {
+    if (conflict) return fail("STORAGE_RUN_CONFLICT", "run changed before the terminal write");
+    return fail("STORAGE_WRITE_FAILED", error instanceof Error ? error.message : "finishRun failed");
+  }
+  return { ok: true, value: next, diagnostics: [] };
+}
+
+export async function appendAssertionEvaluation(
+  runId: RunId,
+  evaluation: AssertionEvaluation
+): Promise<DomainResult<StoredRunEnvelope>> {
+  const raw = await readRawRun(runId);
+  if (raw === undefined) return fail("STORAGE_NOT_FOUND", "run does not exist");
+  const current = await parseStoredRunEnvelope(raw);
+  if (!current.ok) return current;
+  if (current.value.record.status !== "success") return fail("RUN_BAD_TRANSITION", "assertions can only append to a success record");
+  const success = current.value.record as SuccessfulRunRecord;
+  const existing = success.assertionEvaluations.find(item => item.id === evaluation.id);
+  if (existing) {
+    if (JSON.stringify(existing) !== JSON.stringify(evaluation)) return fail("RUN_EVALUATION_CORRUPT", "duplicate evaluation id has a different payload");
+    return { ok: true, value: current.value, diagnostics: [] };
+  }
+  const nextRecord: SuccessfulRunRecord = {
+    ...success,
+    assertionEvaluations: [...success.assertionEvaluations, evaluation],
+  };
+  const parsed = await parseRunRecord(nextRecord);
+  if (!parsed.ok) return parsed;
+  const next: StoredRunEnvelope = {
+    ...current.value,
+    storageVersion: current.value.storageVersion + 1,
+    record: parsed.value,
+    listKey: deriveRunListKey(parsed.value, current.value.localAttempt),
+  };
+  const db = await openDatabase();
+  let conflict = false;
+  try {
+    const tx = db.transaction("runs", "readwrite");
+    const request = tx.objectStore("runs").get(runId);
+    request.onsuccess = () => {
+      const stored = request.result as StoredRunEnvelope | undefined;
+      if (
+        !stored ||
+        stored.storageVersion !== current.value.storageVersion ||
+        stored.localAttempt !== current.value.localAttempt ||
+        stored.immutableBaseHash !== current.value.immutableBaseHash
+      ) {
+        conflict = true;
+        tx.abort();
+        return;
+      }
+      tx.objectStore("runs").put(next, runId);
+    };
+    await waitForTransaction(tx);
+  } catch (error) {
+    if (conflict) {
+      const latestRaw = await readRawRun(runId);
+      const latest = latestRaw === undefined ? undefined : await parseStoredRunEnvelope(latestRaw);
+      if (latest?.ok && latest.value.record.status === "success") {
+        const hit = (latest.value.record as SuccessfulRunRecord).assertionEvaluations.find(item => item.id === evaluation.id);
+        if (hit && JSON.stringify(hit) === JSON.stringify(evaluation)) return { ok: true, value: latest.value, diagnostics: [] };
+        if (hit) return fail("RUN_EVALUATION_CORRUPT", "duplicate evaluation id has a different payload");
+      }
+      return fail("STORAGE_RUN_CONFLICT", "run changed before the evaluation write");
+    }
+    return fail("STORAGE_WRITE_FAILED", error instanceof Error ? error.message : "appendAssertionEvaluation failed");
+  }
+  return { ok: true, value: next, diagnostics: [] };
+}
+
+export async function loadRun(runId: RunId): Promise<DomainResult<StoredRunEnvelope | null>> {
+  const raw = await readRawRun(runId);
+  if (raw === undefined) return { ok: true, value: null, diagnostics: [] };
+  return parseStoredRunEnvelope(raw);
+}
+
+export async function listRuns(projectId: ProjectId): Promise<DomainResult<RunSummary[]>> {
+  const db = await openDatabase();
+  const summaries: RunSummary[] = [];
+  const tx = db.transaction("runs", "readonly");
+  const cursorReq = tx.objectStore("runs").index("listKey").openKeyCursor(projectBound(projectId));
+  cursorReq.onsuccess = () => {
+    const cursor = cursorReq.result;
+    if (!cursor) return;
+    const key = cursor.key;
+    if (Array.isArray(key) && key.length === 7) {
+      summaries.push({
+        projectId: String(key[0]),
+        localAttempt: Number(key[1]),
+        startedAt: String(key[2]),
+        analysisId: String(key[3]),
+        status: key[4] as RunRecord["status"],
+        cornerKey: String(key[5]),
+        runId: String(key[6]),
+      });
+    }
+    cursor.continue();
+  };
+  await waitForTransaction(tx);
+  return { ok: true, value: summaries, diagnostics: [] };
+}
+
+export async function recoverInterruptedRuns(): Promise<DomainResult<Array<{ runId: RunId; status: string; code?: string }>>> {
+  const db = await openDatabase();
+  const runningIds: RunId[] = [];
+  const collect = db.transaction("runs", "readonly");
+  const cursorReq = collect.objectStore("runs").index("status").openKeyCursor(IDBKeyRange.only("running"));
+  cursorReq.onsuccess = () => {
+    const cursor = cursorReq.result;
+    if (!cursor) return;
+    runningIds.push(String(cursor.primaryKey));
+    cursor.continue();
+  };
+  await waitForTransaction(collect);
+  const summaries: Array<{ runId: RunId; status: string; code?: string }> = [];
+  for (const runId of runningIds) {
+    const raw = await readRawRun(runId);
+    const parsed = raw === undefined ? undefined : await parseStoredRunEnvelope(raw);
+    if (!parsed?.ok) {
+      summaries.push({ runId, status: "invalid", code: "STORAGE_INVALID_RUN" });
+      continue;
+    }
+    if (parsed.value.record.status !== "running") continue;
+    const lockName = `fluxlab-run:${runId}`;
+    if (typeof navigator !== "undefined" && navigator.locks?.request) {
+      let busy = false;
+      await navigator.locks.request(lockName, { mode: "exclusive", ifAvailable: true }, async lock => {
+        if (!lock) {
+          busy = true;
+          return;
+        }
+        const recovered = recoverInterruptedRun(parsed.value.record as RunningRunRecord, new Date().toISOString());
+        if (!recovered.ok) {
+          summaries.push({ runId, status: "failed", code: recovered.diagnostics[0]?.code });
+          return;
+        }
+        const finished = await finishRun(recovered.value);
+        summaries.push({
+          runId,
+          status: finished.ok ? "interrupted" : "failed",
+          code: finished.ok ? "RUN_INTERRUPTED" : finished.diagnostics[0]?.code,
+        });
+      });
+      if (busy) summaries.push({ runId, status: "running", code: "RUN_ACTIVE_IN_OTHER_TAB" });
+    } else {
+      const recovered = recoverInterruptedRun(parsed.value.record as RunningRunRecord, new Date().toISOString());
+      if (!recovered.ok) {
+        summaries.push({ runId, status: "failed", code: recovered.diagnostics[0]?.code });
+        continue;
+      }
+      const finished = await finishRun(recovered.value);
+      summaries.push({
+        runId,
+        status: finished.ok ? "interrupted" : "failed",
+        code: finished.ok ? "RUN_INTERRUPTED" : finished.diagnostics[0]?.code,
+      });
+    }
+  }
+  return { ok: true, value: summaries, diagnostics: [] };
+}
+
+export async function pruneRuns(
+  projectId: ProjectId,
+  protectedRunIds: RunId[],
+  keep = 20
+): Promise<DomainResult<{ deleted: RunId[]; blocked?: string }>> {
+  const listed = await listRuns(projectId);
+  if (!listed.ok) return listed;
+  const protectedSet = new Set(protectedRunIds);
+  const terminals = listed.value
+    .filter(item => item.status !== "running")
+    .sort((left, right) => left.localAttempt - right.localAttempt);
+  const runningCount = listed.value.filter(item => item.status === "running").length;
+  const extra = terminals.length + runningCount - keep;
+  const deleted: RunId[] = [];
+  if (extra <= 0) return { ok: true, value: { deleted }, diagnostics: [] };
+  const victims = terminals.filter(item => !protectedSet.has(item.runId)).slice(0, extra);
+  if (victims.length < extra && terminals.some(item => protectedSet.has(item.runId))) {
+    return fail("RUN_RETENTION_BLOCKED", "protected evidence keeps the project above the retention limit");
+  }
+  const db = await openDatabase();
+  const tx = db.transaction("runs", "readwrite");
+  for (const victim of victims) tx.objectStore("runs").delete(victim.runId);
+  await waitForTransaction(tx);
+  deleted.push(...victims.map(item => item.runId));
+  return { ok: true, value: { deleted }, diagnostics: [] };
+}
+
+declare global {
+  interface Window {
+    __fluxlabRunStorage?: any;
+    __fluxlabBuildRunningRecord?: any;
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.__fluxlabRunStorage = {
+    createRunningRun,
+    finishRun,
+    recoverInterruptedRuns,
+    listRuns,
+    loadRun,
+    loadProject,
+    saveProject,
+    deleteProject,
+  };
+  window.__fluxlabBuildRunningRecord = buildRunningRecordForProject;
 }

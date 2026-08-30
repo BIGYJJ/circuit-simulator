@@ -426,6 +426,8 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible { outli
 .library-list { padding: 0; list-style: none; }
 .library-list li { display: flex; gap: 12px; align-items: baseline; margin: 10px 0; }
 .library-diagnostic, .workspace-error p { color: #fa785e; }
+.library-delete-dialog { border: 1px solid var(--border); background: var(--card); color: inherit; padding: 18px; }
+.library-delete-dialog button { margin-right: 8px; }
 .settings-page dl { display: grid; gap: 16px; max-width: 720px; }
 .settings-page dt { color: #949a92; font-size: 12px; }
 .settings-page dd { margin: 4px 0 0; }
