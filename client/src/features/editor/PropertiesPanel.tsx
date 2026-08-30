@@ -10,6 +10,7 @@ interface PropertiesPanelProps {
   onSelect: (componentId: ComponentId | null) => void;
   onSelectWire: (wireId: string | null) => void;
   onCommand: (command: ProjectCommand) => void;
+  allowUpdateParams?: boolean;
 }
 
 function resistanceOf(component: ComponentInstance | undefined) {
@@ -34,6 +35,7 @@ export default function PropertiesPanel({
   onSelect,
   onSelectWire,
   onCommand,
+  allowUpdateParams = true,
 }: PropertiesPanelProps) {
   const selected = project.schematic.components.find(item => item.id === selectedId);
   const selectedWire = project.schematic.wires.find(item => item.id === selectedWireId);
@@ -117,7 +119,7 @@ export default function PropertiesPanel({
             电阻（Ω）
             <input value={resistance} onChange={event => setResistance(event.target.value)} inputMode="decimal" />
           </label>
-          <button type="submit">应用参数</button>
+          <button type="submit" disabled={!allowUpdateParams}>应用参数</button>
         </form>
       ) : null}
       {selected?.kind === "capacitor" ? (
@@ -133,7 +135,7 @@ export default function PropertiesPanel({
             电容（F）
             <input value={capacitance} onChange={event => setCapacitance(event.target.value)} inputMode="decimal" />
           </label>
-          <button type="submit">应用参数</button>
+          <button type="submit" disabled={!allowUpdateParams}>应用参数</button>
         </form>
       ) : null}
       {selected?.kind === "voltageSource" || selected?.kind === "currentSource" ? (
@@ -189,7 +191,7 @@ export default function PropertiesPanel({
           ) : (
             <p>工作点由波形时间零推导，网表不发射显式 DC。</p>
           )}
-          <button type="submit">应用参数</button>
+          <button type="submit" disabled={!allowUpdateParams}>应用参数</button>
           {dcError ? <p data-testid="source-dc-error">{dcError}</p> : null}
         </form>
       ) : null}

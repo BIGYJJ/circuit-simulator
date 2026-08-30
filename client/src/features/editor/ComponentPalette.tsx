@@ -5,6 +5,7 @@ import type { ProjectCommand } from "./project-reducer";
 interface ComponentPaletteProps {
   project: CircuitProjectV2;
   onCommand: (command: ProjectCommand) => void;
+  allowAdd?: boolean;
 }
 
 const ADDABLE: Array<{ kind: Exclude<ComponentKind, "diode" | "switch" | "bjt" | "mosfet" | "subcircuit">; label: string }> = [
@@ -62,7 +63,7 @@ function addCommand(project: CircuitProjectV2, component: ComponentInstance): Pr
   };
 }
 
-export default function ComponentPalette({ project, onCommand }: ComponentPaletteProps) {
+export default function ComponentPalette({ project, onCommand, allowAdd = true }: ComponentPaletteProps) {
   const diodeModel = firstModel(project, "diode");
   const bjtModel = firstModel(project, "bjt");
   const mosfetModel = firstModel(project, "mosfet");
@@ -73,13 +74,14 @@ export default function ComponentPalette({ project, onCommand }: ComponentPalett
     <section className="workspace-palette" aria-label="元件库">
       <h2>元件库</h2>
       {ADDABLE.map(item => (
-        <button key={item.kind} type="button" onClick={() => onCommand(addCommand(project, createPassive(project, item.kind)))}>
+        <button key={item.kind} type="button" disabled={!allowAdd} onClick={() => onCommand(addCommand(project, createPassive(project, item.kind)))}>
           {`添加${item.label}`}
         </button>
       ))}
       {diodeModel ? (
         <button
           type="button"
+          disabled={!allowAdd}
           onClick={() => {
             const id = nextRefdes(project, "D");
             onCommand(addCommand(project, { id, refdes: id, kind: "diode", params: { area: 1 }, modelRef: diodeModel.id }));
@@ -91,6 +93,7 @@ export default function ComponentPalette({ project, onCommand }: ComponentPalett
       {bjtModel ? (
         <button
           type="button"
+          disabled={!allowAdd}
           onClick={() => {
             const id = nextRefdes(project, "Q");
             onCommand(addCommand(project, { id, refdes: id, kind: "bjt", params: { area: 1 }, modelRef: bjtModel.id }));
@@ -102,6 +105,7 @@ export default function ComponentPalette({ project, onCommand }: ComponentPalett
       {mosfetModel ? (
         <button
           type="button"
+          disabled={!allowAdd}
           onClick={() => {
             const id = nextRefdes(project, "M");
             onCommand(
@@ -121,6 +125,7 @@ export default function ComponentPalette({ project, onCommand }: ComponentPalett
       {switchModel ? (
         <button
           type="button"
+          disabled={!allowAdd}
           onClick={() => {
             const id = nextRefdes(project, "S");
             onCommand(addCommand(project, { id, refdes: id, kind: "switch", params: {}, modelRef: switchModel.id }));
@@ -132,6 +137,7 @@ export default function ComponentPalette({ project, onCommand }: ComponentPalett
       {subcktModel && subcktModel.kind === "spice-subckt" && subcktModel.interfaces[0] ? (
         <button
           type="button"
+          disabled={!allowAdd}
           onClick={() => {
             const id = nextRefdes(project, "X");
             const iface = subcktModel.interfaces[0]!;

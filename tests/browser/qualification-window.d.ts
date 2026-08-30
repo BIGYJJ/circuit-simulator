@@ -33,6 +33,7 @@ interface Window {
   __fluxlabRunStorage?: any;
   __fluxlabBuildRunningRecord?: any;
   __fluxlabPatchedDelete?: () => void;
+  __fluxlabPatchedCursor?: () => void;
   __fluxlabHeldLock?: boolean;
   __fluxlabReleaseHeldLock?: () => void;
   __fluxlabWorkerCreations?: number;

@@ -1,5 +1,6 @@
 import { bundledManifestForValidation } from "../domain/project/bundled-models";
 import { parseCircuitProjectV2 } from "../domain/project/project-schema";
+import type { LearningEvidence } from "../features/learning/contracts";
 import type { AnalysisId, CircuitProjectV2, Diagnostic, DomainResult, ProjectId, RunId } from "../domain/project/project-v2";
 import type { AssertionEvaluation, RunRecord, RunningRunRecord, SuccessfulRunRecord, TerminalRunRecord } from "../simulation/contracts";
 import { buildRunningRecordForProject, computeImmutableBaseHash, recoverInterruptedRun } from "../simulation/run-record";
@@ -70,6 +71,19 @@ export interface StoredSettingEnvelope {
   key: string;
   projectKey?: readonly [projectId: ProjectId, key: string];
   value: StoredSettingValue;
+}
+
+export type LessonSessionValue = Extract<StoredSettingValue, { kind: "lesson-session" }>;
+export type LastOpenedProjectValue = Extract<StoredSettingValue, { kind: "last-opened-project" }>;
+export type LegacyNoticeValue = Extract<StoredSettingValue, { kind: "legacy-notice" }>;
+
+export interface StoredLearningEvidenceEnvelope {
+  envelopeVersion: 1;
+  storageVersion: number;
+  evidence: LearningEvidence;
+  lessonKey: readonly [lessonId: string, projectId: ProjectId];
+  projectKey: readonly [projectId: ProjectId, lessonId: string];
+  referencedRunIds: RunId[];
 }
 
 export type ProjectSaveState =
@@ -182,6 +196,74 @@ export function parseStoredSettingEnvelope(input: unknown): DomainResult<StoredS
     return fail("STORAGE_INVALID_SETTING", "setting key fields do not match the payload");
   }
   return { ok: true, value: parsed.data as StoredSettingEnvelope, diagnostics: [] };
+}
+
+const learningStepSchema = z
+  .object({
+    stepId: persistentId,
+    projectRevision: z.number().int().positive(),
+    runId: persistentId,
+    prediction: z.union([z.string(), z.number(), z.boolean(), z.null()]),
+    assertionResultIds: z.array(persistentId),
+    completedAt: isoDate,
+  })
+  .strict();
+
+const learningEvidenceSchema = z
+  .object({
+    projectId: persistentId,
+    lessonId: persistentId,
+    steps: z.array(learningStepSchema),
+  })
+  .strict();
+
+const learningEnvelopeSchema = z
+  .object({
+    envelopeVersion: z.literal(1),
+    storageVersion: z.number().int().positive(),
+    evidence: learningEvidenceSchema,
+    lessonKey: z.tuple([persistentId, persistentId]),
+    projectKey: z.tuple([persistentId, persistentId]),
+    referencedRunIds: z.array(persistentId),
+  })
+  .strict();
+
+export function deriveLearningEvidenceEnvelope(evidence: LearningEvidence, storageVersion: number): StoredLearningEvidenceEnvelope {
+  const referencedRunIds = [...new Set(evidence.steps.map(step => step.runId))].sort();
+  return {
+    envelopeVersion: 1,
+    storageVersion,
+    evidence,
+    lessonKey: [evidence.lessonId, evidence.projectId],
+    projectKey: [evidence.projectId, evidence.lessonId],
+    referencedRunIds,
+  };
+}
+
+export function parseStoredLearningEvidenceEnvelope(input: unknown): DomainResult<StoredLearningEvidenceEnvelope> {
+  const parsed = learningEnvelopeSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      diagnostics: parsed.error.issues.map(item => ({
+        severity: "error" as const,
+        code: "STORAGE_INVALID_EVIDENCE",
+        message: item.message,
+        blocksRun: true,
+      })),
+    };
+  }
+  const derived = deriveLearningEvidenceEnvelope(parsed.data.evidence, parsed.data.storageVersion);
+  if (
+    parsed.data.lessonKey[0] !== derived.lessonKey[0] ||
+    parsed.data.lessonKey[1] !== derived.lessonKey[1] ||
+    parsed.data.projectKey[0] !== derived.projectKey[0] ||
+    parsed.data.projectKey[1] !== derived.projectKey[1] ||
+    JSON.stringify(parsed.data.referencedRunIds) !== JSON.stringify(derived.referencedRunIds)
+  ) {
+    return fail("STORAGE_INVALID_EVIDENCE", "learning evidence keys do not match the derived indexes");
+  }
+  return { ok: true, value: derived, diagnostics: [] };
 }
 
 export function deriveProjectListKey(project: CircuitProjectV2): StoredProjectEnvelope["listKey"] {
@@ -850,6 +932,26 @@ export async function recoverInterruptedRuns(): Promise<DomainResult<Array<{ run
   return { ok: true, value: summaries, diagnostics: [] };
 }
 
+async function referencedRunStatus(runId: RunId): Promise<DomainResult<"free">> {
+  const db = await openDatabase();
+  const rawRows: unknown[] = [];
+  const tx = db.transaction("lessonEvidence", "readonly");
+  const cursorReq = tx.objectStore("lessonEvidence").index("referencedRunIds").openCursor(IDBKeyRange.only(runId));
+  cursorReq.onsuccess = () => {
+    const cursor = cursorReq.result;
+    if (!cursor) return;
+    rawRows.push(cursor.value);
+    cursor.continue();
+  };
+  await waitForTransaction(tx);
+  for (const raw of rawRows) {
+    const parsed = parseStoredLearningEvidenceEnvelope(raw);
+    if (!parsed.ok) return fail("RUN_REFERENCE_CHECK_CORRUPT", "a learning evidence row referencing this run is corrupt");
+    if (parsed.value.referencedRunIds.includes(runId)) return fail("RUN_REFERENCE_EXISTS", "a learning checkpoint still references this run");
+  }
+  return { ok: true, value: "free", diagnostics: [] };
+}
+
 export async function pruneRuns(
   projectId: ProjectId,
   protectedRunIds: RunId[],
@@ -865,8 +967,20 @@ export async function pruneRuns(
   const extra = terminals.length + runningCount - keep;
   const deleted: RunId[] = [];
   if (extra <= 0) return { ok: true, value: { deleted }, diagnostics: [] };
-  const victims = terminals.filter(item => !protectedSet.has(item.runId)).slice(0, extra);
-  if (victims.length < extra && terminals.some(item => protectedSet.has(item.runId))) {
+  const candidates = terminals.filter(item => !protectedSet.has(item.runId));
+  const victims: typeof candidates = [];
+  for (const candidate of candidates) {
+    if (victims.length >= extra) break;
+    const referenced = await referencedRunStatus(candidate.runId);
+    if (!referenced.ok) {
+      return {
+        ok: false,
+        diagnostics: referenced.diagnostics,
+      };
+    }
+    victims.push(candidate);
+  }
+  if (victims.length < extra && (terminals.some(item => protectedSet.has(item.runId)) || candidates.length > victims.length)) {
     return fail("RUN_RETENTION_BLOCKED", "protected evidence keeps the project above the retention limit");
   }
   const db = await openDatabase();
@@ -875,6 +989,222 @@ export async function pruneRuns(
   await waitForTransaction(tx);
   deleted.push(...victims.map(item => item.runId));
   return { ok: true, value: { deleted }, diagnostics: [] };
+}
+
+function lessonKeyOf(projectId: ProjectId, lessonId: string): readonly [string, ProjectId] {
+  return [lessonId, projectId];
+}
+
+function lessonKeyBound(lessonId: string) {
+  return IDBKeyRange.bound([lessonId], [lessonId, "\uffff"]);
+}
+
+export async function putLearningEvidence(
+  expectedStorageVersion: number | null,
+  evidence: LearningEvidence
+): Promise<DomainResult<StoredLearningEvidenceEnvelope>> {
+  const derived = deriveLearningEvidenceEnvelope(evidence, expectedStorageVersion ?? 1);
+  const parsed = parseStoredLearningEvidenceEnvelope(derived);
+  if (!parsed.ok) return parsed;
+  const db = await openDatabase();
+  let conflict = false;
+  let written: StoredLearningEvidenceEnvelope | undefined;
+  try {
+    const tx = db.transaction("lessonEvidence", "readwrite");
+    const store = tx.objectStore("lessonEvidence");
+    const request = store.get(IDBKeyRange.only([...parsed.value.lessonKey]));
+    request.onsuccess = () => {
+      const current = request.result as StoredLearningEvidenceEnvelope | undefined;
+      if (expectedStorageVersion === null) {
+        if (current !== undefined) {
+          conflict = true;
+          tx.abort();
+          return;
+        }
+        written = parsed.value;
+        store.add(parsed.value);
+        return;
+      }
+      if (!current || current.storageVersion !== expectedStorageVersion) {
+        conflict = true;
+        tx.abort();
+        return;
+      }
+      written = deriveLearningEvidenceEnvelope(evidence, current.storageVersion + 1);
+      store.put(written);
+    };
+    await waitForTransaction(tx);
+  } catch (error) {
+    if (conflict) return fail("STORAGE_REVISION_CONFLICT", "learning evidence version does not match");
+    return fail("STORAGE_WRITE_FAILED", error instanceof Error ? error.message : "learning evidence write failed");
+  }
+  if (!written) return fail("STORAGE_WRITE_FAILED", "learning evidence write produced no envelope");
+  return { ok: true, value: written, diagnostics: [] };
+}
+
+export async function loadLearningEvidence(
+  projectId: ProjectId,
+  lessonId: string
+): Promise<DomainResult<StoredLearningEvidenceEnvelope | null>> {
+  const db = await openDatabase();
+  let raw: unknown;
+  const tx = db.transaction("lessonEvidence", "readonly");
+  const request = tx.objectStore("lessonEvidence").get(IDBKeyRange.only([...lessonKeyOf(projectId, lessonId)]));
+  request.onsuccess = () => {
+    raw = request.result;
+  };
+  await waitForTransaction(tx);
+  if (raw === undefined) return { ok: true, value: null, diagnostics: [] };
+  return parseStoredLearningEvidenceEnvelope(raw);
+}
+
+export async function listLearningEvidenceForLesson(
+  lessonId: string
+): Promise<DomainResult<StoredLearningEvidenceEnvelope[]>> {
+  const db = await openDatabase();
+  const rawRows: unknown[] = [];
+  const tx = db.transaction("lessonEvidence", "readonly");
+  const cursorReq = tx.objectStore("lessonEvidence").index("lessonKey").openCursor(lessonKeyBound(lessonId));
+  cursorReq.onsuccess = () => {
+    const cursor = cursorReq.result;
+    if (!cursor) return;
+    rawRows.push(cursor.value);
+    cursor.continue();
+  };
+  await waitForTransaction(tx);
+  const value: StoredLearningEvidenceEnvelope[] = [];
+  const diagnostics: Diagnostic[] = [];
+  for (const raw of rawRows) {
+    const parsed = parseStoredLearningEvidenceEnvelope(raw);
+    if (parsed.ok) value.push(parsed.value);
+    else diagnostics.push(...parsed.diagnostics);
+  }
+  return { ok: true, value, diagnostics };
+}
+
+export async function deleteLearningEvidence(
+  projectId: ProjectId,
+  lessonId: string,
+  expectedStorageVersion: number
+): Promise<DomainResult<null>> {
+  const db = await openDatabase();
+  let missing = false;
+  let conflict = false;
+  try {
+    const tx = db.transaction("lessonEvidence", "readwrite");
+    const store = tx.objectStore("lessonEvidence");
+    const key = [...lessonKeyOf(projectId, lessonId)];
+    const request = store.get(IDBKeyRange.only(key));
+    request.onsuccess = () => {
+      const current = request.result as StoredLearningEvidenceEnvelope | undefined;
+      if (!current) {
+        missing = true;
+        tx.abort();
+        return;
+      }
+      if (current.storageVersion !== expectedStorageVersion) {
+        conflict = true;
+        tx.abort();
+        return;
+      }
+      store.delete(key);
+    };
+    await waitForTransaction(tx);
+  } catch (error) {
+    if (missing) return fail("STORAGE_NOT_FOUND", "learning evidence does not exist");
+    if (conflict) return fail("STORAGE_REVISION_CONFLICT", "learning evidence version does not match");
+    return fail("STORAGE_WRITE_FAILED", error instanceof Error ? error.message : "learning evidence delete failed");
+  }
+  return { ok: true, value: null, diagnostics: [] };
+}
+
+async function writeSetting(value: StoredSettingValue): Promise<DomainResult<StoredSettingEnvelope>> {
+  const draft: StoredSettingEnvelope = {
+    envelopeVersion: 1,
+    storageVersion: 1,
+    key: deriveSettingKey(value),
+    ...(deriveSettingProjectKey(value) ? { projectKey: deriveSettingProjectKey(value) } : {}),
+    value,
+  };
+  const parsed = parseStoredSettingEnvelope(draft);
+  if (!parsed.ok) return parsed;
+  const db = await openDatabase();
+  let written: StoredSettingEnvelope | undefined;
+  try {
+    const tx = db.transaction("settings", "readwrite");
+    const store = tx.objectStore("settings");
+    const request = store.get(parsed.value.key);
+    request.onsuccess = () => {
+      const current = request.result as StoredSettingEnvelope | undefined;
+      written = { ...parsed.value, storageVersion: current ? current.storageVersion + 1 : 1 };
+      store.put(written);
+    };
+    await waitForTransaction(tx);
+  } catch (error) {
+    return fail("STORAGE_WRITE_FAILED", error instanceof Error ? error.message : "setting write failed");
+  }
+  if (!written) return fail("STORAGE_WRITE_FAILED", "setting write produced no envelope");
+  return { ok: true, value: written, diagnostics: [] };
+}
+
+async function readSetting(key: string): Promise<DomainResult<StoredSettingEnvelope | null>> {
+  const db = await openDatabase();
+  let raw: unknown;
+  const tx = db.transaction("settings", "readonly");
+  const request = tx.objectStore("settings").get(key);
+  request.onsuccess = () => {
+    raw = request.result;
+  };
+  await waitForTransaction(tx);
+  if (raw === undefined) return { ok: true, value: null, diagnostics: [] };
+  return parseStoredSettingEnvelope(raw);
+}
+
+export async function saveLessonSession(session: LessonSessionValue): Promise<DomainResult<StoredSettingEnvelope>> {
+  if (session.kind !== "lesson-session") return fail("STORAGE_INVALID_SETTING", "saveLessonSession accepts only lesson-session values");
+  return writeSetting(session);
+}
+
+export async function loadLessonSession(lessonId: string): Promise<DomainResult<LessonSessionValue | null>> {
+  const loaded = await readSetting(`lesson-session:${lessonId}`);
+  if (!loaded.ok) return loaded;
+  if (!loaded.value) return { ok: true, value: null, diagnostics: [] };
+  if (loaded.value.value.kind !== "lesson-session") return fail("STORAGE_INVALID_SETTING", "stored row is not a lesson session");
+  return { ok: true, value: loaded.value.value, diagnostics: [] };
+}
+
+export async function saveLastOpenedProject(projectId: ProjectId): Promise<DomainResult<StoredSettingEnvelope>> {
+  return writeSetting({ kind: "last-opened-project", projectId });
+}
+
+export async function loadLastOpenedProject(): Promise<DomainResult<LastOpenedProjectValue | null>> {
+  const loaded = await readSetting("last-opened-project");
+  if (!loaded.ok) return loaded;
+  if (!loaded.value) return { ok: true, value: null, diagnostics: [] };
+  if (loaded.value.value.kind !== "last-opened-project") return fail("STORAGE_INVALID_SETTING", "stored row is not a last-opened project");
+  return { ok: true, value: loaded.value.value, diagnostics: [] };
+}
+
+export async function saveLocalSettings(settings: LocalSettingsV1): Promise<DomainResult<StoredSettingEnvelope>> {
+  return writeSetting({ kind: "local-settings", settings });
+}
+
+export async function loadLocalSettings(): Promise<DomainResult<LocalSettingsV1 | null>> {
+  const loaded = await readSetting("local-settings");
+  if (!loaded.ok) return loaded;
+  if (!loaded.value) return { ok: true, value: null, diagnostics: [] };
+  if (loaded.value.value.kind !== "local-settings") return fail("STORAGE_INVALID_SETTING", "stored row is not local settings");
+  return { ok: true, value: loaded.value.value.settings, diagnostics: [] };
+}
+
+export async function acknowledgeLegacyNotice(path: LegacyNoticeValue["path"]): Promise<DomainResult<StoredSettingEnvelope>> {
+  return writeSetting({ kind: "legacy-notice", path, acknowledged: true });
+}
+
+export async function hasAcknowledgedLegacyNotice(path: LegacyNoticeValue["path"]): Promise<DomainResult<boolean>> {
+  const loaded = await readSetting(`legacy-notice:${path}`);
+  if (!loaded.ok) return loaded;
+  return { ok: true, value: Boolean(loaded.value && loaded.value.value.kind === "legacy-notice"), diagnostics: [] };
 }
 
 declare global {
@@ -895,6 +1225,19 @@ if (typeof window !== "undefined") {
     loadProject,
     saveProject,
     deleteProject,
+    putLearningEvidence,
+    loadLearningEvidence,
+    listLearningEvidenceForLesson,
+    deleteLearningEvidence,
+    saveLessonSession,
+    loadLessonSession,
+    saveLastOpenedProject,
+    loadLastOpenedProject,
+    saveLocalSettings,
+    loadLocalSettings,
+    acknowledgeLegacyNotice,
+    hasAcknowledgedLegacyNotice,
+    pruneRuns,
   };
   window.__fluxlabBuildRunningRecord = buildRunningRecordForProject;
 }

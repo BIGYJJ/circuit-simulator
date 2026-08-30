@@ -7,9 +7,17 @@ import {
   createProjectSaveLane,
   createRunningRun,
   deleteProject,
+  deriveLearningEvidenceEnvelope,
   listProjects,
+  loadLearningEvidence,
+  loadLessonSession,
   loadProject,
+  parseStoredLearningEvidenceEnvelope,
   parseStoredSettingEnvelope,
+  putLearningEvidence,
+  saveLastOpenedProject,
+  saveLessonSession,
+  saveLocalSettings,
   saveProject,
   type StoredSettingEnvelope,
 } from "./indexeddb";
@@ -100,6 +108,52 @@ describe("project persistence", () => {
     expect(removed.ok).toBe(true);
     const empty = await loadProject("proj-divider-v2");
     expect(empty.ok && empty.value).toBeNull();
+  });
+});
+
+describe("learning evidence and lesson sessions", () => {
+  it("writes derived envelopes, sessions, and cascades five stores", async () => {
+    const project = dividerProjectFixture();
+    const saved = await saveProject(null, project);
+    expect(saved.ok).toBe(true);
+    const evidence = {
+      projectId: project.id,
+      lessonId: "foundation-divider",
+      steps: [
+        {
+          stepId: "step-predict-6v",
+          projectRevision: 1,
+          runId: "run-keep",
+          prediction: 6,
+          assertionResultIds: ["assertion-result:v1:aaa"],
+          completedAt: "2026-08-31T00:00:00.000Z",
+        },
+      ],
+    };
+    const derived = deriveLearningEvidenceEnvelope(evidence, 1);
+    expect(derived.referencedRunIds).toEqual(["run-keep"]);
+    expect(parseStoredLearningEvidenceEnvelope({ ...derived, referencedRunIds: ["run-keep", "run-keep"] }).ok).toBe(false);
+    const put = await putLearningEvidence(null, evidence);
+    expect(put.ok).toBe(true);
+    const loaded = await loadLearningEvidence(project.id, "foundation-divider");
+    expect(loaded.ok && loaded.value?.storageVersion).toBe(1);
+    const session = await saveLessonSession({
+      kind: "lesson-session",
+      lessonId: "foundation-divider",
+      projectId: project.id,
+      templateKey: "divider",
+    });
+    expect(session.ok).toBe(true);
+    const mapped = await loadLessonSession("foundation-divider");
+    expect(mapped.ok && mapped.value?.projectId).toBe(project.id);
+    await saveLastOpenedProject(project.id);
+    await saveLocalSettings({ schemaVersion: 1, theme: "dark", reducedMotion: "system", defaultView: "standard" });
+    const removed = await deleteProject(project.id);
+    expect(removed.ok).toBe(true);
+    const gone = await loadLearningEvidence(project.id, "foundation-divider");
+    expect(gone.ok && gone.value).toBeNull();
+    const sessionGone = await loadLessonSession("foundation-divider");
+    expect(sessionGone.ok && sessionGone.value).toBeNull();
   });
 });
 

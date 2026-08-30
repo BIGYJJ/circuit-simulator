@@ -1,5 +1,13 @@
 # FLUXLAB 可信电路仿真平台现代化验证
 
+## Task 17 Changed Functionality
+
+| Check | Status | Fresh evidence |
+|---|---|---|
+| Lesson registry / evidence / settings | Pass | vitest lessons 7 + indexeddb 10 + templates 2 |
+| Typecheck | Pass | `pnpm check` exit 0 |
+| Learning journeys + five-store delete | Pass | Playwright Chromium `learning-flow.spec.ts` 2 passed (16.8s) |
+
 ## Task 16 Changed Functionality
 
 | Check | Status | Fresh evidence |

@@ -431,7 +431,13 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible { outli
 .settings-page dl { display: grid; gap: 16px; max-width: 720px; }
 .settings-page dt { color: #949a92; font-size: 12px; }
 .settings-page dd { margin: 4px 0 0; }
-.workspace-shell { width: 100vw; height: 100vh; display: grid; grid-template-rows: auto 1fr; overflow: hidden; background: #090b0a; }
+.workspace-shell { width: 100vw; height: 100vh; display: grid; grid-template-rows: auto auto 1fr; overflow: hidden; background: #090b0a; }
+.lesson-catalog ul { padding: 0; list-style: none; }
+.lesson-catalog li { display: flex; gap: 12px; margin: 8px 0; }
+.lesson-overlay { padding: 12px 18px; border-bottom: 1px solid rgba(235, 244, 224, .11); background: #101716; }
+.lesson-overlay label { display: inline-flex; gap: 8px; align-items: center; margin-right: 12px; }
+.lesson-overlay input { height: 32px; padding: 0 8px; border: 1px solid rgba(235, 244, 224, .14); border-radius: 6px; background: #0b0e0c; color: inherit; }
+.lesson-overlay button { margin: 0 8px 8px 0; }
 .workspace-topbar { padding: 12px 18px; border-bottom: 1px solid rgba(235, 244, 224, .11); }
 .workspace-body { min-height: 0; display: grid; grid-template-columns: 168px minmax(0, 1fr) 320px; }
 .workspace-palette, .workspace-rail { overflow: auto; padding: 12px; background: #101211; }

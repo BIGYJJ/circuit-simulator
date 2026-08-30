@@ -8,6 +8,7 @@ interface RunControlsProps {
   saveBusy: boolean;
   blockers: Diagnostic[];
   runLabel: string;
+  allowRun?: boolean;
   onRun: () => void;
   onCancel: () => void;
 }
@@ -20,11 +21,12 @@ export default function RunControls({
   saveBusy,
   blockers,
   runLabel,
+  allowRun = true,
   onRun,
   onCancel,
 }: RunControlsProps) {
   const analysis = project.analyses.find(item => item.id === analysisId);
-  const disabled = running || saveBusy || !analysis;
+  const disabled = running || saveBusy || !analysis || !allowRun;
   return (
     <section className="workspace-run-controls" aria-label="运行">
       <button type="button" onClick={onRun} disabled={disabled}>

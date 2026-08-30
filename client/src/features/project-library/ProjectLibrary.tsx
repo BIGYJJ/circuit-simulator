@@ -7,6 +7,7 @@ import {
   createRcTemplate,
 } from "../../domain/project/templates";
 import type { Diagnostic, ProjectId } from "../../domain/project/project-v2";
+import LessonCatalog from "../learning/LessonCatalog";
 import { deleteProject, listProjects, saveProject, type ProjectSummary } from "../../storage/indexeddb";
 
 export default function ProjectLibrary() {
@@ -91,6 +92,7 @@ export default function ProjectLibrary() {
         <button type="button" onClick={() => void createFrom(createLowpassAcTemplate)} disabled={busy}>
           新建低通交流
         </button>
+        <LessonCatalog />
         {diagnostics.map(item => (
           <p key={item.code} className="library-diagnostic" data-testid="library-diagnostic">
             {item.code}

@@ -2,15 +2,23 @@
 
 ## Current Status
 
-- Phase: Task 16 角点与交付门禁 landed
-- Completed: Task 1–16。
-- In progress: Task 17 课程层。
+- Phase: Task 17 证据课程 landed
+- Completed: Task 1–17。
+- In progress: Task 18 导入导出。
 - Blocked: 无。
-- Next: Task 17 同一项目/证据 store 上的引导课程。
+- Next: Task 18 可信文件导入导出。
 - Unverified: 远端 Git 历史、旧 ZIP/源码归档与发布资产的密钥清理；PWA 与完整工作台其余切片仍未实现。
 - Deploy note: 生产静态主机必须把 `/project/*`、`/learn/*`、`/settings` 以及旧 pretty path 回写到 `index.html`。Vite preview 的 SPA fallback 不能当作任意主机已正确配置的证据。
 
 ## Log
+
+### 2026-08-31 — Task 17 added evidence-backed learning on the shared workspace
+
+- Completed: 四门固定课程、`/learn/:lessonId`、检查点证据、五店级联删除证明。focused 单元 + IndexedDB；Chromium `learning-flow.spec.ts`。
+- Verified: 分压预测→6 V→检查点后展开工作台 URL/projectId/修订/历史不变；改 R2 后旧 run 历史，新 run 才能过下一步；LED 680 Ω 不能过 8–12 mA，330 Ω 后通过；RC 真实暂态 63.2% 检查点；删除取消无写、settings.projectKey cursor 失败回滚、确认删除只清目标图。
+- Deviation: LED 电流探针改到 R1，因为合格矩阵没有 D 族支路电流；分压模板 `as-vout` 容差 ±1.5 V，避免课程断言把 Task 16 角点门禁打成失败。浏览器仍核对 6.000000 V。
+- Reason: 官方 QUALIFIED_VECTORS 对二极管只有功率项；角点 1.6 kΩ/2.4 kΩ 的 Vout 本来就不在 6 V±10 mV。
+- Remaining: Task 18–23。
 
 ### 2026-08-31 — Task 16 gated nominal and corner run evidence
 

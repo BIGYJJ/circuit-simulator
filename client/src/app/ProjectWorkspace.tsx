@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { APP_BUILD_ID } from "./build-info";
 import type { AnalysisId, CircuitProjectV2, ComponentId, Diagnostic } from "../domain/project/project-v2";
 import AnalysisPanel from "../features/analysis/AnalysisPanel";
@@ -31,12 +31,16 @@ import {
   runAnalysisSeries,
   type DeliveryGateResult,
 } from "../simulation/verification";
+import type { LessonAction, LessonViewMode } from "../features/learning/contracts";
+import LessonOverlay from "../features/learning/LessonOverlay";
+import { canPerformLessonAction, lessonById, restartLessonProject } from "../features/learning/lessons";
 import {
   createProjectSaveLane,
   listRuns,
   loadProject,
   loadRun,
   recoverInterruptedRuns,
+  saveLastOpenedProject,
   saveProject,
   type ProjectSaveState,
 } from "../storage/indexeddb";
@@ -92,6 +96,16 @@ function currentOf(run: SuccessfulRunRecord, refdes: string) {
   return value === undefined ? "—" : `${(value * 1000).toFixed(6)} mA`;
 }
 
+function commandAction(command: ProjectCommand): LessonAction | null {
+  if (command.type === "component/add") return "component:add";
+  if (command.type === "component/remove") return "component:remove";
+  if (command.type === "component/replace") return "component:updateParams";
+  if (command.type === "wire/add") return "wire:add";
+  if (command.type === "wire/remove") return "wire:remove";
+  if (command.type === "probe/upsert") return "probe:add";
+  return null;
+}
+
 function runLabelOf(kind: string | undefined) {
   if (kind === "dc-op") return "运行 DC 工作点";
   if (kind === "dc-sweep") return "运行 DC 扫描";
@@ -101,6 +115,13 @@ function runLabelOf(kind: string | undefined) {
 }
 
 export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
+  const search = useSearch();
+  const [, navigate] = useLocation();
+  const searchParams = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  const lesson = lessonById(searchParams.get("lesson") ?? "");
+  const view = (searchParams.get("view") as LessonViewMode | null) ?? (lesson ? "guided" : "standard");
+  const [guidedStepId, setGuidedStepId] = useState(lesson?.steps[0]?.id ?? "");
+  const currentStep = lesson?.steps.find(item => item.id === guidedStepId) ?? lesson?.steps[0];
   const [loadError, setLoadError] = useState<Diagnostic[] | null>(null);
   const [selectedId, setSelectedId] = useState<ComponentId | null>(null);
   const [selectedWireId, setSelectedWireId] = useState<string | null>(null);
@@ -168,6 +189,7 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
       laneRef.current = lane;
       setSaveState({ status: "saved", latestRevision: result.value.revision, persistedRevision: result.value.revision });
       setReady(true);
+      void saveLastOpenedProject(result.value.id);
     });
     return () => {
       cancelledLoad = true;
@@ -273,7 +295,24 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
     };
   }, [selectedRun, editor.present]);
 
+  function actionAllowed(action: LessonAction) {
+    if (!lesson || view !== "guided" || !currentStep) return true;
+    return canPerformLessonAction(currentStep, action);
+  }
+
+  function setLessonView(next: LessonViewMode) {
+    const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+    if (lesson) params.set("lesson", lesson.id);
+    params.set("view", next);
+    navigate(`/project/${projectId}?${params.toString()}`, { replace: true });
+  }
+
   async function runCommand(command: ProjectCommand) {
+    const mapped = commandAction(command);
+    if (mapped && !actionAllowed(mapped)) {
+      setRunDiagnostics([{ severity: "error", code: "LESSON_ACTION_BLOCKED", message: "this action is outside the current guided step", blocksRun: false }]);
+      return;
+    }
     if (isElectricalCommand(command) && running) {
       await controllerRef.current?.cancel("project-changed");
       setRunning(false);
@@ -282,6 +321,10 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
   }
 
   async function onRun() {
+    if (!actionAllowed("analysis:run")) {
+      setRunDiagnostics([{ severity: "error", code: "LESSON_ACTION_BLOCKED", message: "running is outside the current guided step", blocksRun: false }]);
+      return;
+    }
     if (!analysisId || !controllerRef.current) return;
     setRunning(true);
     setCancelled(false);
@@ -367,6 +410,21 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
 
   return (
     <div className="workspace-shell">
+      {lesson ? (
+        <LessonOverlay
+          lesson={lesson}
+          project={editor.present}
+          selectedRun={selectedRun && currentEnough ? selectedRun : selectedRun}
+          view={view}
+          onView={setLessonView}
+          onStep={setGuidedStepId}
+          onRestart={() => {
+            void restartLessonProject(lesson).then(result => {
+              if (result.ok) navigate(`/project/${result.value.projectId}?lesson=${lesson.id}&view=guided`, { replace: true });
+            });
+          }}
+        />
+      ) : null}
       <header className="workspace-topbar">
         <Link href="/">项目库</Link>
         <h1>{editor.present.title}</h1>
@@ -389,7 +447,11 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
         <p key={`${item.code}-${item.message}`}>{item.code}</p>
       ))}
       <div className="workspace-body">
-        <ComponentPalette project={editor.present} onCommand={command => void runCommand(command)} />
+        <ComponentPalette
+          project={editor.present}
+          allowAdd={actionAllowed("component:add")}
+          onCommand={command => void runCommand(command)}
+        />
         <SchematicCanvas
           project={editor.present}
           selectedId={selectedId}
@@ -414,6 +476,7 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
             saveBusy={Boolean(saveBusy)}
             blockers={previewDiagnostics.filter(item => item.blocksRun)}
             runLabel={runLabelOf(selectedAnalysis?.kind)}
+            allowRun={actionAllowed("analysis:run")}
             onRun={() => void onRun()}
             onCancel={() => {
               void controllerRef.current?.cancel("user").then(() => {
@@ -501,6 +564,7 @@ export default function ProjectWorkspace({ projectId }: ProjectWorkspaceProps) {
             selectedWireId={selectedWireId}
             onSelect={setSelectedId}
             onSelectWire={setSelectedWireId}
+            allowUpdateParams={actionAllowed("component:updateParams")}
             onCommand={command => void runCommand(command)}
           />
         </div>

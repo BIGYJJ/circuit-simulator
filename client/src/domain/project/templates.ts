@@ -1,8 +1,11 @@
 import { bundledManifestForValidation, bundledModelDefinition, CURRENT_BUNDLED_MODEL_KEYS } from "./bundled-models";
 import { sha256Hex } from "./canonical";
-import type { CircuitProjectV2, ComponentInstance, DomainResult, SchematicLayout } from "./project-v2";
+import type { AssertionDefinition, CircuitProjectV2, ComponentInstance, DomainResult, SchematicLayout } from "./project-v2";
 import { parseCircuitProjectV2 } from "./project-schema";
+import { computeVectorId } from "../../simulation/result-parser";
 import { validateProjectModels } from "../../simulation/spice-source-parser";
+
+export type TemplateKey = "divider" | "led" | "rc" | "engineering-review";
 
 function layoutFor(components: ComponentInstance[], positions: Record<string, { x: number; y: number }>): SchematicLayout {
   return {
@@ -56,7 +59,9 @@ export async function createDividerTemplate(projectId: string, createdAt: string
       { id: "pr-ir1", kind: "branch-current", componentId: "R1", label: "I(R1)" },
       { id: "pr-ir2", kind: "branch-current", componentId: "R2", label: "I(R2)" },
     ],
-    assertions: [],
+    assertions: [
+      await voltageNearAssertion("as-vout", "Vout ≈ 6 V", "an-op", "pr-vout", 6, 1.5),
+    ],
     corners: [],
     notes: [],
   });
@@ -103,7 +108,7 @@ export async function createRcTemplate(projectId: string, createdAt: string): Pr
     models: [],
     analyses: [{ id: "an-tran", name: "Transient", kind: "transient", stepS: 0.01, stopS: 5, enabledProbes: ["pr-vcap"] }],
     probes: [{ id: "pr-vcap", kind: "node-voltage", node: { componentId: "C1", pin: "p" }, label: "Vcap" }],
-    assertions: [],
+    assertions: [await valueAtNearAssertion("as-rc-tau", "V(1τ) ≈ 63.2%", "an-tran", "pr-vcap", "voltage", "scalar", { value: 1, unit: "s" }, 3.1606, 0.005)],
     corners: [],
     notes: [],
   });
@@ -143,8 +148,8 @@ export async function createLedTemplate(projectId: string, createdAt: string): P
     }),
     models: [diode],
     analyses: [{ id: "an-op", name: "DC OP", kind: "dc-op", enabledProbes: ["pr-led"] }],
-    probes: [{ id: "pr-led", kind: "branch-current", componentId: "D1", label: "I(D1)" }],
-    assertions: [],
+    probes: [{ id: "pr-led", kind: "branch-current", componentId: "R1", label: "I(LED)" }],
+    assertions: [await currentBetweenAssertion("as-led-current", "LED 8–12 mA", "an-op", "pr-led", 0.008, 0.012)],
     corners: [],
     notes: [],
   });
@@ -233,8 +238,102 @@ export async function createLowpassAcTemplate(projectId: string, createdAt: stri
       { id: "an-ac", name: "AC", kind: "ac", scale: "dec", pointsPerInterval: 20, startHz: 1, stopHz: 1e5, enabledProbes: ["pr-vout"] },
     ],
     probes: [{ id: "pr-vout", kind: "node-voltage", node: { componentId: "C1", pin: "p" }, label: "Vout" }],
-    assertions: [],
+    assertions: [await bandwidthAssertion("as-fc", "−3 dB 截止", "an-ac", "pr-vout", 159.15494309189535, 0.01)],
     corners: [],
     notes: [],
   });
+}
+
+export async function createTemplateForKey(key: TemplateKey, projectId: string, createdAt: string): Promise<DomainResult<CircuitProjectV2>> {
+  if (key === "divider") return createDividerTemplate(projectId, createdAt);
+  if (key === "led") return createLedTemplate(projectId, createdAt);
+  if (key === "rc") return createRcTemplate(projectId, createdAt);
+  return createLowpassAcTemplate(projectId, createdAt);
+}
+
+async function voltageNearAssertion(
+  id: string,
+  name: string,
+  analysisId: string,
+  probeId: string,
+  expected: number,
+  absolute: number
+): Promise<AssertionDefinition> {
+  return valueAtNearAssertion(id, name, analysisId, probeId, "voltage", "scalar", { value: 0, unit: "index" }, expected, undefined, absolute);
+}
+
+async function currentBetweenAssertion(
+  id: string,
+  name: string,
+  analysisId: string,
+  probeId: string,
+  minimum: number,
+  maximum: number
+): Promise<AssertionDefinition> {
+  return {
+    id,
+    name,
+    enabled: true,
+    analysisId,
+    expression: {
+      function: "valueAt",
+      vectorId: await computeVectorId(analysisId, probeId, "current", "scalar"),
+      at: { value: 0, unit: "index" },
+    },
+    comparator: {
+      kind: "between",
+      minimum: { value: minimum, unit: "A" },
+      maximum: { value: maximum, unit: "A" },
+      inclusive: true,
+    },
+  };
+}
+
+async function valueAtNearAssertion(
+  id: string,
+  name: string,
+  analysisId: string,
+  probeId: string,
+  quantity: "voltage" | "current",
+  projection: "scalar",
+  at: { value: number; unit: "index" | "s" | "Hz" },
+  expected: number,
+  relativeTolerance?: number,
+  absoluteTolerance?: number
+): Promise<AssertionDefinition> {
+  return {
+    id,
+    name,
+    enabled: true,
+    analysisId,
+    expression: {
+      function: "valueAt",
+      vectorId: await computeVectorId(analysisId, probeId, quantity, projection),
+      at,
+    },
+    comparator: {
+      kind: "near",
+      expected: { value: expected, unit: quantity === "voltage" ? "V" : "A" },
+      ...(relativeTolerance !== undefined ? { relativeTolerance } : {}),
+      ...(absoluteTolerance !== undefined ? { absoluteTolerance: { value: absoluteTolerance, unit: quantity === "voltage" ? "V" : "A" } } : {}),
+    },
+  };
+}
+
+async function bandwidthAssertion(
+  id: string,
+  name: string,
+  analysisId: string,
+  probeId: string,
+  expectedHz: number,
+  relativeTolerance: number
+): Promise<AssertionDefinition> {
+  return {
+    id,
+    name,
+    enabled: true,
+    analysisId,
+    expression: { function: "bandwidth3dB", vectorId: await computeVectorId(analysisId, probeId, "voltage", "db20") },
+    comparator: { kind: "near", expected: { value: expectedHz, unit: "Hz" }, relativeTolerance },
+  };
 }
