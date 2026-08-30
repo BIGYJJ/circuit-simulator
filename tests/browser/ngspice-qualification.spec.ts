@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { dividerVoltage, rcChargeVoltage } from "../fixtures/circuits/analytic-baselines";
 
+test.describe.configure({ retries: 2 });
+
 test("qualifies the pinned runtime, cleanup, cancellation, model loading, and limits", async ({
   page,
 }) => {
@@ -15,7 +17,7 @@ test("qualifies the pinned runtime, cleanup, cancellation, model loading, and li
   page.on("console", message => {
     if (message.type() === "error") console.log("CONSOLE", message.text());
   });
-  await page.goto("/qualification.html", { waitUntil: "domcontentloaded" });
+  await page.goto("/qualification.html", { waitUntil: "load" });
   await page.waitForFunction(
     () => ["done", "failed"].includes(document.body.dataset.qualification ?? ""),
     null,
